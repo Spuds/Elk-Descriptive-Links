@@ -18,8 +18,8 @@
 			<search position="before"><![CDATA[$context['locked'] = !empty($locked) || !empty($_REQUEST['lock']);]]></search>
 			<add><![CDATA[
 
-	// Can this person turn of link titles?
-	$context['can_disable_title_convert_url'] = allowedTo('disable_title_convert_url');]]></add>
+		// Can this person turn of link titles?
+		$context['can_disable_title_convert_url'] = allowedTo('disable_title_convert_url');]]></add>
 		</operation>
 
 	</file>
@@ -28,7 +28,7 @@
 		<operation>
 			<search position="before"><![CDATA[approve_this_post'] . '</label></li>' : '', ']]></search>
 			<add><![CDATA[
-							', $context['can_disable_title_convert_url'] ? '<li><label for="check_disable_title_convert_url"><input type="checkbox" name="nt" id="check_disable_title_convert_url" class="input_check" value="NT" /> ' . $txt['disable_title_convert_url'] . '</label></li>' : '', ']]></add>
+								', $context['can_disable_title_convert_url'] ? '<li><label for="check_disable_title_convert_url"><input type="checkbox" name="nt" id="check_disable_title_convert_url" class="input_check" value="NT" /> ' . $txt['disable_title_convert_url'] . '</label></li>' : '', ']]></add>
 		</operation>
 	</file>
 
