@@ -1,18 +1,18 @@
 <?php
 
 /**
- * This file is a simplified database uninstaller. It does what it is suppoed to.
+ * This file is a simplified database uninstaller. It does what it is supposed to.
  */
 
 // If we have found SSI.php and we are outside of SMF, then we are running standalone.
-if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('SMF'))
+if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('ELK'))
 	require_once(dirname(__FILE__) . '/SSI.php');
-elseif (!defined('SMF')) // If we are outside SMF and can't find SSI.php, then throw an error
-	die('<b>Error:</b> Cannot install - please verify you put this file in the same place as SMF\'s SSI.php.');
+elseif (!defined('ELK')) 
+	die('<b>Error:</b> Cannot install - please verify you put this file in the same place as ElkArte\'s SSI.php.');
 
 global $modSettings;
 
-// List the modsettings variables to remove array('one',two',three')
+// List the addon variables to remove array('one',two',three')
 $remove_settings = array(
 	'descriptivelinks_enabled',
 	'descriptivelinks_title_url',
@@ -46,5 +46,5 @@ if (count($remove_settings) > 0)
 	updateSettings(array('settings_updated' => time()));
 }
 
-if (SMF == 'SSI')
-   echo 'Congratulations! You have successfully removed this mod!';
+if (ELK == 'SSI')
+   echo 'Congratulations! You have successfully removed this addon!';
