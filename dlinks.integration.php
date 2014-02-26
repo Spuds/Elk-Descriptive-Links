@@ -22,7 +22,7 @@ if (!defined('ELK'))
  * after preparse has run on that section
  * - Parts will be 0 = outside, 1 = begin tag, 2 = inside, 3 = close tag
  *
- * @param string[] $part
+ * @param string $part
  * @param int $i
  * @param boolean $previewing
  */
