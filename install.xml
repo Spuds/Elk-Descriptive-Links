@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.elkarte.net/site/modification">
+<!--
+================================================================================
+  Package "Descriptive Links" addon for ElkArte
+  Author Spuds
+  License This Source Code is subject to the terms of the Mozilla Public License
+   - version 1.1 (the "License"). You can obtain a copy of the License at
+   - http://mozilla.org/MPL/1.1/.
+================================================================================
+-->
+<modification xmlns="http://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net">
+	<id>Spuds:DescriptiveLinks</id>
+	<version>1.0</version>
+
+	<file name="CONTROLLERDIR/Post.controller.php">
+		<operation>
+			<search position="before"><![CDATA[$context['locked'] = !empty($locked) || !empty($_REQUEST['lock']);]]></search>
+			<add><![CDATA[
+
+	// Can this person turn of link titles?
+	$context['can_disable_title_convert_url'] = allowedTo('disable_title_convert_url');]]></add>
+		</operation>
+
+	</file>
+
+	<file name="$themedir/Post.template.php">
+		<operation>
+			<search position="before"><![CDATA[approve_this_post'] . '</label></li>' : '', ']]></search>
+			<add><![CDATA[
+							', $context['can_disable_title_convert_url'] ? '<li><label for="check_disable_title_convert_url"><input type="checkbox" name="nt" id="check_disable_title_convert_url" class="input_check" value="NT" /> ' . $txt['disable_title_convert_url'] . '</label></li>' : '', ']]></add>
+		</operation>
+	</file>
+
+	<file name="$themedir/scripts/post.js">
+		<operation>
+			<search position="replace"><![CDATA[	var checkboxFields = [
+		'ns'
+	];]]></search>
+			<add><![CDATA[	var checkboxFields = [
+		'ns', 'nt'
+	];]]></add>
+		</operation>
+	</file>
+
+</modification>
