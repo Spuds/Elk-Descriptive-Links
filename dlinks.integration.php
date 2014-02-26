@@ -16,7 +16,15 @@ if (!defined('ELK'))
 	die('No access...');
 
 /**
- * 	integrate_preparse_code
+ * integrate_preparse_code, called from Post.subs
+ *
+ * - Allows access to the preparse code function on each section of the message
+ * after preparse has run on that section
+ * - Parts will be 0 = outside, 1 = begin tag, 2 = inside, 3 = close tag
+ *
+ * @param string[] $part
+ * @param int $i
+ * @param boolean $previewing
  */
 function ipc_dlinks(&$part, $i, $previewing)
 {
@@ -40,8 +48,8 @@ function ipc_dlinks(&$part, $i, $previewing)
 /**
  * iaa_dlinks()
  *
- * - integrate_admin_areas
- * - Add a line under modification config
+ * - Admin Hook, integrate_admin_areas, called from Admin.php
+ * - used to add/modify admin menu areas
  *
  * @param mixed[] $admin_areas
  */
@@ -55,9 +63,10 @@ function iaa_dlinks(&$admin_areas)
 /**
  * imm_dlinks()
  *
- * - integrate_modify_modifications hook
+ * - Admin Hook, integrate_modify_modifications, called from AddonSettings.controller.php
+ * - used to add subactions to the addon area
  *
- * @param mixed $sub_actions
+ * @param mixed[] $sub_actions
  */
 function imm_dlinks(&$sub_actions)
 {
