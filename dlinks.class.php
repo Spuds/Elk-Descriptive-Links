@@ -263,7 +263,7 @@ class Add_Title_Link
 		$this->_title = shorten_text($this->_title, $this->_max_title_length, true);
 
 		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
-		if (!empty($this->_title) && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
+		if (!empty($this->_title) && is_array($this->_links_title_generic_names) && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
 		{
 			// Protect special characters and our database
 			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
