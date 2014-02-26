@@ -36,14 +36,69 @@ class Add_Title_Link
 	 */
 	private static $_dlinks = null;
 
+	/**
+	 * comma seperated string or titles to not covert
+	 * @var string
+	 */
 	protected $_links_title_generic_names;
-	protected $_max_title_length = 0;
-	protected $_conversions = 0;
-	protected $_internal = '';
-	protected $_max_conversions = 0;
-	protected $_parts = array();
-	protected $_current = 0;
 
+	/**
+	 * maximum length of a title tag
+	 * @var int
+	 */
+	protected $_max_title_length = 0;
+
+	/**
+	 * Number of converstions done in this message
+	 * @var int
+	 */
+	protected $_conversions = 0;
+
+	/**
+	 * dna of internal links boardurl or scriptutl
+	 * @var string
+	 */
+	protected $_internal = '';
+
+	/**
+	 * maximum number of conversions allowed, more = more time
+	 * @var int
+	 */
+	protected $_max_conversions = 0;
+
+	/**
+	 * urls found in the message to inspect for conversion
+	 * @var string[]
+	 */
+	protected $_urls = array();
+
+	/**
+	 * current url tag being processed
+	 * @var string
+	 */
+	protected $_url = '';
+
+	/**
+	 * Holds the message string we are working on
+	 * @var string
+	 */
+	protected $_message = '';
+
+	/**
+	 * Cleaned, fully qualified url for use in the converted tag
+	 * @var string
+	 */
+	protected $_url_return = '';
+
+	/**
+	 * Title text found in a given url
+	 * @var string
+	 */
+	protected $_title = '';
+
+	/**
+	 * Constructor, just loads some modSettings for this addon to the class vars
+	 */
 	public function __construct()
 	{
 		global $modSettings, $boardurl, $scripturl;
@@ -55,108 +110,107 @@ class Add_Title_Link
 		$this->_max_title_length = $modSettings['descriptivelinks_title_url_length'];
 	}
 
+	/**
+	 * Takes a message string and converts url and plain text links to titled links
+	 *
+	 * - Does NOT check if the link is inside tags (e.g. code) that should not be converted
+	 * it must be supplied strings in which you want the tags converted
+	 * - If bbc urls is enable will convert them back to URL's for processing
+	 *
+	 * @param string $message
+	 */
 	public function Add_title_to_link($message = '')
 	{
-		global $modSettings, $context;
+		global $modSettings;
 
 		// Init
 		require_once (SUBSDIR . '/Package.subs.php');
 		$this->_message = $message;
 
-		// If asked, lets create a nice title for the link [url=ddd]great title[/url]
-		if (!empty($modSettings['descriptivelinks_title_url']))
+		// If convert URLS (bbc url) [url]$1[/url] & [url=http://$1]$1[/url] is enabled
+		// we need to revert them to standard links for this addon to work and put them back as needed
+		if (!empty($modSettings['descriptivelinks_title_bbcurl']))
 		{
-			// Only convert tags that are outside [code] tags.
-			$this->_parts = preg_split('~(\[/code\]|\[code(?:=[^\]]+)?\])~i', $this->_message, -1, PREG_SPLIT_DELIM_CAPTURE);
-			for ($this->_current = 0, $n = count($this->_parts); $this->_current < $n; $this->_current++)
+			// Maybe its [url=http://bbb.bbb.bbb]bbb.bbb.bbb[/url]
+			$pre_urls = array();
+			preg_match_all("~\[url=(http(?:s)?:\/\/(.+?))\](?:http(?:s)?:\/\/)?(.+?)\[/url\]~siu", $this->_message, $pre_urls, PREG_SET_ORDER);
+			foreach ($pre_urls as $url_check)
 			{
-				if ($this->_current % 4 === 0)
+				// The link IS the same as the title, so set it to be a non bbc link so we can work on it
+				if (isset($url_check[2]) && isset($url_check[3]) && ($url_check[2] === $url_check[3]))
 				{
-					// If convert URLS (bbc url) [url]$1[/url] & [url=http://$1]$1[/url] is enabled
-					// we need to revert these for this mod to work and put them back as needed
-					if (!empty($modSettings['descriptivelinks_title_bbcurl']))
-					{
-						// Maybe its [url=http://bbb.bbb.bbb]bbb.bbb.bbb[/url]
-						$pre_urls = array();
-						preg_match_all("~\[url=(http(?:s)?:\/\/(.+?))\](?:http(?:s)?:\/\/)?(.+?)\[/url\]~si" . ($context['utf8'] ? 'u' : ''), $this->_parts[$this->_current], $pre_urls, PREG_SET_ORDER);
-						foreach ($pre_urls as $url_check)
-						{
-							// The link IS the same as the title, so set it to be a non bbc link so we can work on it
-							if (isset($url_check[2]) && isset($url_check[3]) && ($url_check[2] === $url_check[3]))
-							{
-								$url_check[2] = trim((strpos($url_check[2], 'http://') === false && strpos($url_check[2], 'https://') === false) ? 'http://' . $url_check[2] : $url_check[2]);
-								$this->_parts[$this->_current] = str_replace($url_check[0], $url_check[2], $this->_parts[$this->_current]);
-							}
-						}
-
-						// Maybe it just like [url]bbb.bbb.bbb[/url]
-						preg_match_all("~\[url\](http(?:s)?:\/\/(.+?))\[/url\]~si", $this->_parts[$this->_current], $pre_urls, PREG_SET_ORDER);
-
-						// Just a bbc link so back to a non bbc link it goes
-						foreach ($pre_urls as $url_check)
-							$this->_parts[$this->_current] = str_replace($url_check[0], $url_check[1], $this->_parts[$this->_current]);
-					}
-
-					// Find all (non bbc) links in this message and wrap them in a custom bbc url tag so we can inspect.
-					$this->_parts[$this->_current] = preg_replace('~((?:(?<=[\s>\.\(;\'"]|^)(https?:\/\/))|(?:(?<=[\s>\'<]|^)www\.[^ \[\]\(\)\n\r\t]+)|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})\/)([^ \[\]\(\),"\'<>\n\r\t]+)([^\. \[\]\(\),;"\'<>\n\r\t])|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})~iu', '[%url]$0[/url%]', $this->_parts[$this->_current]);
-
-					// Find the special bbc urls that we just created, if any, so we can run through them and get titles
-					$urls = array();
-					preg_match_all("~\[%url\](.+?)\[/url%\]~ism", $this->_parts[$this->_current], $urls);
-					if (!empty($urls[0]))
-					{
-						// Set a timeout on getting the url ... don't want to get stuck waiting
-						$timeout = ini_get('default_socket_timeout');
-						@ini_set('default_socket_timeout', 3);
-
-						// Look at all these links !
-						process_links($urls[1]);
-
-						// Put the server socket timeout back to what is was originally
-						@ini_set('default_socket_timeout', $timeout);
-					}
+					$url_check[2] = trim((strpos($url_check[2], 'http://') === false && strpos($url_check[2], 'https://') === false) ? 'http://' . $url_check[2] : $url_check[2]);
+					$this->_message = str_replace($url_check[0], $url_check[2], $this->_message);
 				}
-				$this->_message = implode('', $this->_parts);
 			}
+
+			// Maybe it just like [url]bbb.bbb.bbb[/url]
+			preg_match_all("~\[url\](http(?:s)?:\/\/(.+?))\[/url\]~si", $this->_message, $pre_urls, PREG_SET_ORDER);
+			foreach ($pre_urls as $url_check)
+				$this->_message = str_replace($url_check[0], $url_check[1], $this->_message);
 		}
 
-		return;
+		// Wrap all (non bbc) links in this message in a custom bbc tag ([%url]$0[/url%.
+		$this->_message = preg_replace('~((?:(?<=[\s>\.\(;\'"]|^)(https?:\/\/))|(?:(?<=[\s>\'<]|^)www\.[^ \[\]\(\)\n\r\t]+)|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})\/)([^ \[\]\(\)"\'<>\n\r\t]+)([^\. \[\]\(\),;"\'<>\n\r\t])|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})~iu', '[%url]$0[/url%]', $this->_message);
+
+		// Find the special bbc tags that we just created, if any, so we can run through them and get titles
+		$this->_urls = array();
+		preg_match_all("~\[%url\](.+?)\[/url%\]~ism", $this->_message, $this->_urls);
+		if (!empty($this->_urls[0]))
+		{
+			// Set a timeout on getting the url ... don't want to get stuck waiting
+			$timeout = ini_get('default_socket_timeout');
+			@ini_set('default_socket_timeout', 3);
+
+			// Process all these links !
+			$this->process_links();
+
+			// Put the server socket timeout back to what is was originally
+			@ini_set('default_socket_timeout', $timeout);
+		}
+
+		return $this->_message;
 	}
 
-	private function process_links($urls)
+	/**
+	 * Process each link in order to find the page title
+	 *
+	 * - Makes a fetch web data call to each link found
+	 * - Process the fetch results looking to page title
+	 * - Cleans any titles found and replaces the link with a titled link
+	 */
+	private function process_links()
 	{
 		global $modSettings;
 
 		// Look at all these links !
-		foreach ($urls as $url)
+		foreach ($this->_urls[1] as $this->_url)
 		{
-			// Make sure the link is lower case and leads with http:// so fetch web data
-			// does not drop a spacely space sprocket
-			$url_temp = str_replace(array('HTTP://', 'HTTPS://'), array('http://', 'https://'), $url);
-			$url_return = $url_modified = trim((strpos($url_temp, 'http://') === false && strpos($url_temp, 'https://') === false) ? 'http://' . $url_temp : $url_temp);
-
-			// Make sure there is a trailing '/' *when needed* so fetch_web_data
-			// does not blow a cogswell cog
-			$urlinfo = parse_url($url_modified);
-			if (!isset($urlinfo['path']))
-				$url_modified .= '/';
-
 			// If our counter has exceeded the allowed number of conversions then put the remaining urls
 			// back to what they were and finish
 			if (!empty($this->_max_conversions) && $this->_conversions++ >= $this->_max_conversions)
 			{
-				$this->_parts[$this->_current] = preg_replace('`\[%url\]' . preg_quote($url) . '\[/url%\]`', $url, $this->_parts[$this->_current]);
+				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
 				continue;
 			}
 
-			// Get the title from the web or if an internal link from the database ;)
+			// Make sure the link is lower case and leads with http:// so fetch web data does not drop a spacely space sprocket
+			$url_temp = str_replace(array('HTTP://', 'HTTPS://'), array('http://', 'https://'), $this->_url);
+			$this->_url_return = $url_modified = trim((strpos($url_temp, 'http://') === false && strpos($url_temp, 'https://') === false) ? 'http://' . $url_temp : $url_temp);
+
+			// Make sure there is a trailing '/' *when needed* so fetch_web_data does not blow a cogswell cog
+			$urlinfo = parse_url($url_modified);
+			if (!isset($urlinfo['path']))
+				$url_modified .= '/';
+
+			// Get the title from the web or if an internal link from the database
 			$request = false;
 			if (stripos($url_modified, $this->_internal) !== false)
 			{
 				// Internal link it is, give the counter back, its a freebie
 				if (!empty($modSettings['descriptivelinks_title_internal']))
 				{
-					$request = Load_topic_subject($url_modified);
+					$request = $this->load_topic_subject($url_modified);
 					$this->_conversions--;
 				}
 			}
@@ -176,49 +230,63 @@ class Add_Title_Link
 			// Request went through and there is a page title in the result
 			if ($request !== false && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
 			{
-				// Decode and undo htmlspecial first so we can clean this dirty baby
-				$title = trim(html_entity_decode(un_htmlspecialchars($matches[1])));
-
-				// Remove crazy stuff we find in title tags, what are those web "masters" thinking?
-				$title = str_replace(array('&mdash;', "\n", "\t"), array('-', ' ', ' '), $title);
-				$title = preg_replace('~\s{2,30}~', ' ', $title);
-
-				// Some titles are just tooooooooo long
-				$title = shorten_text($title, $this->_max_title_length, true);
-
-				// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
-				if (!empty($title) && array_search(strtolower($title), $this->_links_title_generic_names) === false)
-				{
-					// Protect special characters and our database
-					$title = Util::htmlspecialchars(stripslashes($title), ENT_QUOTES);
-
-					// Update the link with the title we found
-					$this->_parts[$this->_current] = preg_replace('`\[%url\]' . preg_quote($url) . '\[/url%\]`', '[url=' . $url_return . ']' . $title . '[/url]', $this->_parts[$this->_current]);
-				}
-				// Generic title, like welcome, or home, etc ... lets set things back to the way they were
-				else
-					$this->_parts[$this->_current] = preg_replace('`\[%url\]' . preg_quote($url) . '\[/url%\]`', $url, $this->_parts[$this->_current]);
+				$this->_title = $matches[1];
+				$this->sanitize_title();
 			}
 			// No title or an error, back to the original we go...
 			else
-				$this->_parts[$this->_current] = preg_replace('`\[%url\]' . preg_quote($url) . '\[/url%\]`', $url, $this->_parts[$this->_current]);
+				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
 
 			// Pop the connection to keep it alive
-			$db->db_server_info();
+			//$db->db_server_info();
 		}
+	}
+
+	/**
+	 * Prepares titles found from a page scrape for use in a link
+	 *
+	 * - Removes tags and entites
+	 * - Shortens lenght as needed
+	 * - Checks for generic naming
+	 * - Replaces that link in the text with the cleaned link+title
+	 */
+	private function sanitize_title()
+	{
+		// Decode and undo htmlspecial first so we can clean this dirty baby
+		$this->_title = trim(html_entity_decode(un_htmlspecialchars($this->_title)));
+
+		// Remove crazy stuff we find in title tags, what are those web "masters" thinking?
+		$this->_title = str_replace(array('&mdash;', "\n", "\t"), array('-', ' ', ' '), $this->_title);
+		$this->_title = preg_replace('~\s{2,30}~', ' ', $this->_title);
+
+		// Some titles are just tooooooooo long
+		$this->_title = shorten_text($this->_title, $this->_max_title_length, true);
+
+		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
+		if (!empty($this->_title) && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
+		{
+			// Protect special characters and our database
+			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
+
+			// Update the link with the title we found
+			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
+		}
+		// Generic title, like welcome, or home, etc ... lets set things back to the way they were
+		else
+			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
 	}
 
 	/**
 	 * Called by Add_title_to_link to resolve the name of internal links
 	 *
-	 * - returns the topic or post subject if its a message link
-	 * - returns the board name if its a board link
+	 * - Returns the topic or post subject if its a message link
+	 * - Returns the board name if its a board link
 	 *
 	 * @param string $url
 	 */
-	function Load_topic_subject($url)
+	private function load_topic_subject($url)
 	{
-		global $scripturl, $txt, $context, $modSettings;
+		global $scripturl, $txt, $modSettings;
 
 		$db = database();
 
@@ -238,30 +306,34 @@ class Add_Title_Link
 
 		// Find the topic or message number in this link
 		$match = array();
-		if (preg_match('`' . $pattern_message . '`i' . ($context['utf8'] ? 'u' : ''), $url, $match))
+		if (preg_match('`' . $pattern_message . '`iu', $url, $match))
 		{
-			// found the topic number .... lets get the subject
+			// Found the topic number .... lets get the subject
 			if (isset($match[2]))
 				$match[2] = str_replace('.msg', '', $match[2]);
 			else
 				$match[2] = '';
 
-			// off to the database we go, convert this link to the message title, check for any hackyness as well, such as
-			// the message is on a board they can see, not in the recycle bin, is approved, etc, so we show only what they can see.
+			// Off to the database we go, convert this link to the message title,
+			// check for any hackyness as well, such as
+			// the message is on a board they can see, not in the recycle bin, is approved, etc,
+			// so we show only what they can see.
 			$request = $db->query('', '
-			SELECT m.subject
+			SELECT
+				m.subject
 			FROM {db_prefix}topics AS t
 				INNER JOIN {db_prefix}messages AS m ON (m.id_msg = ' . (($match[2] != '') ? '{int:message_id}' : 't.id_first_msg') . ')
 				LEFT JOIN {db_prefix}boards AS b ON (t.id_board = b.id_board)
 			WHERE t.id_topic = {int:topic_id} && {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
 				AND b.id_board != {int:recycle_board}' : '') . '
 				AND m.approved = {int:is_approved}
-			LIMIT 1', array(
-				'topic_id' => $match[1],
-				'message_id' => $match[2],
-				'recycle_board' => $modSettings['recycle_board'],
-				'is_approved' => 1,
-					)
+			LIMIT 1',
+				array(
+					'topic_id' => $match[1],
+					'message_id' => $match[2],
+					'recycle_board' => $modSettings['recycle_board'],
+					'is_approved' => 1,
+				)
 			);
 
 			// Hummm bad info in the link
@@ -271,37 +343,35 @@ class Add_Title_Link
 			// Found the topic data, load the subject er I mean title !
 			list($title) = $db->fetch_row($request);
 			$db->free_result($request);
-
-			// Clean it up a bit
-			$title = trim(str_replace($txt['response_prefix'], '', $title));
-			$title = '<title>' . $title . '</title>';
 		}
 		elseif (preg_match('`' . $pattern_board . '`iu', $url, $match))
 		{
-			// found a board number .... lets get the board name
+			// Found a board number .... lets get the board name
 			$request = $db->query('', '
-			SELECT b.name
+			SELECT
+				b.name
 			FROM {db_prefix}boards as b
 			WHERE b.id_board = {int:board_id} AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
 				AND b.id_board != {int:recycle_board}' : '') . '
-			LIMIT 1', array(
-				'board_id' => $match[1],
-				'recycle_board' => $modSettings['recycle_board'],
-					)
+			LIMIT 1',
+				array(
+					'board_id' => $match[1],
+					'recycle_board' => $modSettings['recycle_board'],
+				)
 			);
 
-			// nothing found, nothing gained
+			// Nothing found, nothing gained
 			if ($db->num_rows($request) == 0)
 				return false;
 
 			// Found the board name, load the name for the title
 			list($title) = $db->fetch_row($request);
 			$db->free_result($request);
-
-			// and make it look good
-			$title = trim(str_replace($txt['response_prefix'], '', $title));
-			$title = '<title>' . $title . '</title>';
 		}
+
+		// Make it look good
+		$title = trim(str_replace($txt['response_prefix'], '', $title));
+		$title = '<title>' . $title . '</title>';
 
 		return $title;
 	}

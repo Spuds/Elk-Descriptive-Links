@@ -32,7 +32,7 @@ function ipc_dlinks(&$part, $i, $previewing)
 		require_once(SUBSDIR . '/dlinks.class.php');
 
 		// Get the instance of the title class
-		$dlinks = Add_Title_Link::context();
+		$dlinks = Add_Title_Link::dlinks();
 		$part = $dlinks->Add_title_to_link($part);
 	}
 }
@@ -49,7 +49,7 @@ function iaa_dlinks(&$admin_areas)
 {
 	global $txt;
 
-	$admin_areas['config']['areas']['modsettings']['subsections']['dlinks'] = array($txt['mods_cat_modifications_dlinks']);
+	$admin_areas['config']['areas']['addonsettings']['subsections']['dlinks'] = array($txt['mods_cat_modifications_dlinks']);
 }
 
 /**
@@ -61,7 +61,12 @@ function iaa_dlinks(&$admin_areas)
  */
 function imm_dlinks(&$sub_actions)
 {
-	$sub_actions['dlinks'] = 'ModifydlinksSettings';
+	$sub_actions['dlinks'] = array(
+		'dir' => SUBSDIR,
+		'file' => 'dlinks.integration.php',
+		'function' => 'ModifydlinksSettings',
+		'permission' => 'admin_forum',
+	);
 }
 
 /**
