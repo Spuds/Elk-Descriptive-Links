@@ -1,5 +1,5 @@
 [color=blue][b]Uninstalling:[/b][/color]
-If you are permanently removing this mod, and not updating to a new version, and would like to remove all settings from the database, please do the following:
+If you are permanently removing this addon, and not updating to a new version, and would like to remove all settings from the database, please do the following:
 [list]
 [li]Uninstall as normal[/li]
 [li]Extract the optional remove_settings.php file from this package file[/li]

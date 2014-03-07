@@ -4,7 +4,7 @@
  * This file is a simplified database installer. It does what it is supposed to.
  */
 
-// If we have found SSI.php and we are outside of SMF, then we are running standalone.
+// If we have found SSI.php and we are outside of ElkArte, then we are running standalone.
 if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('ELK'))
 	require_once(dirname(__FILE__) . '/SSI.php');
 elseif (!defined('ELK')) 
