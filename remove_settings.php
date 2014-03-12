@@ -7,10 +7,12 @@
 // If we have found SSI.php and we are outside of ElkArte, then we are running standalone.
 if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('ELK'))
 	require_once(dirname(__FILE__) . '/SSI.php');
-elseif (!defined('ELK')) 
+elseif (!defined('ELK'))
 	die('<b>Error:</b> Cannot install - please verify you put this file in the same place as ElkArte\'s SSI.php.');
 
 global $modSettings;
+
+$db = database();
 
 // List the addon variables to remove array('one',two',three')
 $remove_settings = array(
@@ -34,7 +36,7 @@ if (count($remove_settings) > 0)
 	}
 
 	// And now from sight
-	$smcFunc['db_query']('', '
+	$db->query('', '
 		DELETE FROM {db_prefix}settings
 		WHERE variable IN ({array_string:variables})',
 		array(

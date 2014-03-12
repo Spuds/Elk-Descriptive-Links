@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE modification SYSTEM "http://www.elkarte.net/site/modification">
 <modification xmlns="http://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net/site/">
-	<file name="LANGUAGEDIR/english/Modifications.english.php" error="skip">
+	<file name="LANGUAGEDIR/english/Addons.english.php" error="skip">
 		<operation>
 			<search position="end" />
 			<add><![CDATA[
