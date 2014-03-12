@@ -30,7 +30,7 @@ function ipc_dlinks(&$part, $i, $previewing)
 {
 	global $modSettings;
 
-	// We are only interested with whats outside of code tags
+	// We are only interested with what's outside of code tags
 	if ($i % 4 !== 0 || $previewing)
 		return;
 
@@ -71,7 +71,7 @@ function iaa_dlinks(&$admin_areas)
 function imm_dlinks(&$sub_actions)
 {
 	$sub_actions['dlinks'] = array(
-		'dir' => SUBSDIR,
+		'dir' => SOURCEDIR,
 		'file' => 'dlinks.integration.php',
 		'function' => 'ModifydlinksSettings',
 		'permission' => 'admin_forum',
@@ -82,7 +82,7 @@ function imm_dlinks(&$sub_actions)
  * ilp_dlinks()
  *
  * - Permissions hook, integrate_load_permissions, called from ManagePermissions.php
- * - used to add new permisssions
+ * - used to add new permissions
  *
  * @param mixed[] $permissionGroups
  * @param mixed[] $permissionList
@@ -97,9 +97,6 @@ function ilp_dlinks(&$permissionGroups, &$permissionList, &$leftPermissionGroups
 
 /**
  * ModifydlinksSettings()
- *
- * @param mixed $return_config
- * @return
  */
 function ModifydlinksSettings()
 {
@@ -121,6 +118,7 @@ function ModifydlinksSettings()
 		array('int', 'descriptivelinks_title_url_count', 'subtext' => $txt['descriptivelinks_title_url_count_sub'], 'postinput' => $txt['descriptivelinks_title_url_count_urls']),
 		array('int', 'descriptivelinks_title_url_length'),
 		array('text','descriptivelinks_title_url_generic', 60, 'subtext' => $txt['descriptivelinks_title_url_generic_sub']),
+		array('text','descriptivelinks_title_url_video', 60, 'subtext' => $txt['descriptivelinks_title_url_video_sub']),
 	);
 
 	// Load the settings to the form class
