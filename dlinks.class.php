@@ -37,10 +37,15 @@ class Add_Title_Link
 	private static $_dlinks = null;
 
 	/**
-	 * comma seperated string or titles to not covert
+	 * comma separated string or titles to not covert
 	 * @var string
 	 */
 	protected $_links_title_generic_names;
+
+	/**
+	 * comma seperated string of links to skip
+	 */
+	protected $_skip_video_links;
 
 	/**
 	 * maximum length of a title tag
@@ -49,7 +54,7 @@ class Add_Title_Link
 	protected $_max_title_length = 0;
 
 	/**
-	 * Number of converstions done in this message
+	 * Number of conversions done in this message
 	 * @var int
 	 */
 	protected $_conversions = 0;
@@ -108,13 +113,14 @@ class Add_Title_Link
 		$this->_internal = !empty($modSettings['queryless_urls']) ? $boardurl : $scripturl;
 		$this->_max_conversions = $modSettings['descriptivelinks_title_url_count'];
 		$this->_max_title_length = $modSettings['descriptivelinks_title_url_length'];
+		$this->_skip_video_links = !empty($modSettings['descriptivelinks_title_url_video']) ? explode(',', $modSettings['descriptivelinks_title_url_video']) : '';
 	}
 
 	/**
 	 * Takes a message string and converts url and plain text links to titled links
 	 *
 	 * - Does NOT check if the link is inside tags (e.g. code) that should not be converted
-	 * it must be supplied strings in which you want the tags converted
+	 * - it must be supplied strings in which you want the tags converted
 	 * - If bbc urls is enable will convert them back to URL's for processing
 	 *
 	 * @param string $message
@@ -186,6 +192,19 @@ class Add_Title_Link
 		// Look at all these links !
 		foreach ($this->_urls[1] as $this->_url)
 		{
+			// If the url has any skip fragment, then we skip it
+			if (!empty($this->_skip_video_links))
+			{
+				foreach ($this->_skip_video_links as $check)
+				{
+					if (strpos($this->_url, $check) !== false)
+					{
+						$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+						continue;
+					}
+				}
+			}
+
 			// If our counter has exceeded the allowed number of conversions then put the remaining urls
 			// back to what they were and finish
 			if (!empty($this->_max_conversions) && $this->_conversions++ >= $this->_max_conversions)
@@ -221,7 +240,10 @@ class Add_Title_Link
 
 				// Looks like an extesion, 4 or less characters, then it needs to be htmlish
 				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array($check['extension'], array('htm', 'html', '', '//', 'php'))))
+				{
+					$this->_conversions--;
 					$request = false;
+				}
 				// External links are good too, but protect against double encoded pasted links
 				else
 					$request = fetch_web_data(un_htmlspecialchars(un_htmlspecialchars($url_modified)));
@@ -245,8 +267,8 @@ class Add_Title_Link
 	/**
 	 * Prepares titles found from a page scrape for use in a link
 	 *
-	 * - Removes tags and entites
-	 * - Shortens lenght as needed
+	 * - Removes tags and entities
+	 * - Shortens length as needed
 	 * - Checks for generic naming
 	 * - Replaces that link in the text with the cleaned link+title
 	 */

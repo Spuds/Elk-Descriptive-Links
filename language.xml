@@ -20,6 +20,8 @@ $txt['descriptivelinks_title_url_count_urls'] = 'URL\'s';
 $txt['disable_title_convert_url'] = 'Do not auto title the links in this post';
 $txt['permissionname_disable_title_convert_url'] = 'Allow disabling of descriptive link titles';
 $txt['permissionhelp_disable_title_convert_url'] = 'Allows the member to disable the automatic updating of links in a post to the page title.';
+$txt['descriptivelinks_title_url_video'] = 'Don\'t convert links with these names in the url (as a comma separated list)';
+$txt['descriptivelinks_title_url_video_sub'] = 'Use to skip over links, for example youtube,vimeo,dailymotion allowing them to embed intstead';
 ]]></add>
 		</operation>
 	</file>

@@ -23,6 +23,7 @@ $remove_settings = array(
 	'descriptivelinks_title_url_generic',
 	'descriptivelinks_title_url_length',
 	'descriptivelinks_title_bbcurl',
+	'descriptivelinks_title_url_video',
 );
 
 // Remove settings if applicable
