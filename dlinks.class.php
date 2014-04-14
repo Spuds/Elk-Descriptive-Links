@@ -120,6 +120,7 @@ class Add_Title_Link
 	 * Takes a message string and converts url and plain text links to titled links
 	 *
 	 * - Does NOT check if the link is inside tags (e.g. code) that should not be converted
+	 * here that is taken care of by ipc_dlinks
 	 * - it must be supplied strings in which you want the tags converted
 	 * - If bbc urls is enable will convert them back to URL's for processing
 	 *

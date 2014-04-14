@@ -21,7 +21,7 @@
 		<modification type="file">install.xml</modification>
 		<require-file name="dlinks.class.php" destination="SUBSDIR" />
 		<require-file name="dlinks.integration.php" destination="SOURCEDIR" />
-		<hook hook="integrate_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
+		<hook hook="integrate_sa_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
 		<hook hook="integrate_admin_areas" file="SOURCEDIR/dlinks.integration.php" function="iaa_dlinks" />
 		<hook hook="integrate_load_permissions" file="SOURCEDIR/dlinks.integration.php" function="ilp_dlinks" />
 		<hook hook="integrate_preparse_code" file="SOURCEDIR/dlinks.integration.php" function="ipc_dlinks" />
@@ -30,7 +30,7 @@
 	</install>
 	<uninstall for="1.0 Beta - 1.0.99">
 		<readme type="file" parsebbc="true">readme-uninstall.txt</readme>
-		<hook reverse="true" hook="integrate_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
+		<hook reverse="true" hook="integrate_sa_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
 		<hook reverse="true" hook="integrate_admin_areas" file="SOURCEDIR/dlinks.integration.php" function="iaa_dlinks" />
 		<hook reverse="true" hook="integrate_load_permissions" file="SOURCEDIR/dlinks.integration.php" function="ilp_dlinks" />
 		<hook reverse="true" hook="integrate_preparse_code" file="SOURCEDIR/dlinks.integration.php" function="ipc_dlinks" />
