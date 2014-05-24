@@ -24,9 +24,6 @@ if (!defined('ELK'))
  * - truncates long titles per admin panel settings
  * - updates the link in the link in the message body itself
  * - user permission to allow disabling of this option for a given message.
- *
- * @param string $message
- * @param int $id_msg
  */
 class Add_Title_Link
 {
