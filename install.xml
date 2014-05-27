@@ -24,7 +24,7 @@
 
 	</file>
 
-	<file name="$themedir/Post.template.php">
+	<file name="THEMEDIR/Post.template.php">
 		<operation>
 			<search position="before"><![CDATA[approve_this_post'] . '</label></li>' : '', ']]></search>
 			<add><![CDATA[
@@ -32,7 +32,7 @@
 		</operation>
 	</file>
 
-	<file name="$themedir/scripts/post.js">
+	<file name="THEMEDIR/scripts/post.js">
 		<operation>
 			<search position="replace"><![CDATA[	var checkboxFields = [
 		'ns'
