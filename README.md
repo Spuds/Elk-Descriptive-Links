@@ -1,7 +1,7 @@
 ##Descriptive Links v1
 
 ###License
-This Modifications Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at [http://mozilla.org/MPL/1.1/](http://mozilla.org/MPL/1.1.)
+This Addons Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at [http://mozilla.org/MPL/1.1/](http://mozilla.org/MPL/1.1.)
 
 ###Introduction
  - Adds capability to automatically update links in posts to display the links page title instead of the default url.
@@ -10,5 +10,5 @@ This Modifications Source Code is subject to the terms of the Mozilla Public Lic
  - Permissions to allow users to disable link conversion on a per post basis (under post additional options)
  - Only converts links when the post is saved or modified, ensuring no performance impact during normal message viewing.
 
-There are admin settings available with this mod, go to configuration -> modification settings -> dlinks
-Here you can disable/enable various features of the modification.
+There are admin settings available with this mod, go to admin -> configuration -> add-on settings -> dlinks
+Here you can disable/enable various features of the addon.
