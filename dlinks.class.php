@@ -280,7 +280,7 @@ class Add_Title_Link
 		$this->_title = preg_replace('~\s{2,30}~', ' ', $this->_title);
 
 		// Some titles are just tooooooooo long
-		$this->_title = shorten_text($this->_title, $this->_max_title_length, true);
+		$this->_title = Util::shorten_text($this->_title, $this->_max_title_length, true);
 
 		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
 		if (!empty($this->_title) && is_array($this->_links_title_generic_names) && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
