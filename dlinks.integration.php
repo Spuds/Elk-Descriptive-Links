@@ -59,7 +59,7 @@ function iaa_dlinks(&$admin_areas)
 
 	// Should be but op cache causes a delay
 	if (!isset($txt['mods_cat_modifications_dlinks']))
-		loadLanguage('Addons');
+		$txt['mods_cat_modifications_dlinks'] = 'DLinks';
 
 	$admin_areas['config']['areas']['addonsettings']['subsections']['dlinks'] = array($txt['mods_cat_modifications_dlinks']);
 }
