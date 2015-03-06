@@ -320,7 +320,7 @@ class Add_Title_Link
 		// -or-
 		// http://xxx/index.php?board=1.0
 		//
-		$pattern_message = preg_quote($scripturl) . '[\/?]{1}topic[\=,]{1}(\d{1,8})(.msg\d{1,8})?';
+		$pattern_message = preg_quote($scripturl) . '[\/?]{1}topic[\=,]{1}(\d{1,8})(.msg\d{1,8})?(#new)?';
 		$pattern_board = preg_quote($scripturl) . '[\/?]{1}board[\=,]{1}(\d{1,8})';
 		$title = false;
 
@@ -334,26 +334,37 @@ class Add_Title_Link
 			else
 				$match[2] = '';
 
+			// Set the message part of the query
+			if (isset($match[3]) && !empty($match[2]))
+				$query = 'm.id_msg >= {int:message_id}';
+			elseif (!empty($match[2]))
+				$query = '(m.id_msg = {int:message_id} OR m.id_msg = t.id_first_msg)';
+			else
+				$query = 'm.id_msg = t.id_first_msg';
+
 			// Off to the database we go, convert this link to the message title,
 			// check for any hackyness as well, such as
 			// the message is on a board they can see, not in the recycle bin, is approved, etc,
 			// so we show only what they can see.
 			$request = $db->query('', '
-			SELECT
-				m.subject
-			FROM {db_prefix}topics AS t
-				INNER JOIN {db_prefix}messages AS m ON (m.id_msg = ' . (($match[2] != '') ? '{int:message_id}' : 't.id_first_msg') . ')
-				LEFT JOIN {db_prefix}boards AS b ON (t.id_board = b.id_board)
-			WHERE t.id_topic = {int:topic_id} && {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
-				AND b.id_board != {int:recycle_board}' : '') . '
-				AND m.approved = {int:is_approved}
-			LIMIT 1',
-				array(
-					'topic_id' => $match[1],
-					'message_id' => $match[2],
-					'recycle_board' => $modSettings['recycle_board'],
-					'is_approved' => 1,
-				)
+				SELECT
+					m.subject
+				FROM {db_prefix}topics AS t
+					INNER JOIN {db_prefix}messages AS m ON m.id_topic = {int:topic_id}
+					LEFT JOIN {db_prefix}boards AS b ON (t.id_board = b.id_board)
+				WHERE t.id_topic = {int:topic_id} 
+					AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
+					AND b.id_board != {int:recycle_board}' : '') . '
+					AND m.approved = {int:is_approved}
+					AND ' . $query . '
+				LIMIT 1',
+					array(
+						'topic_id' => $match[1],
+						'message_id' => $match[2],
+						'recycle_board' => $modSettings['recycle_board'],
+						'is_approved' => 1,
+						'query' => $query,
+					)
 			);
 
 			// Hummm bad info in the link
