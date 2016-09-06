@@ -283,7 +283,10 @@ class Add_Title_Link
 		$this->_title = trim($this->_title);
 
 		// Some titles are just tooooooooo long
-		$this->_title = Util::shorten_text($this->_title, $this->_max_title_length, true);
+		if ($this->_max_title_length > 0)
+		{
+			$this->_title = Util::shorten_text($this->_title, $this->_max_title_length, true);
+		}
 
 		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
 		if (!empty($this->_title) && Util::strlen($this->_title) > 2 && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
@@ -296,7 +299,9 @@ class Add_Title_Link
 		}
 		// Generic title, like welcome, or home, etc ... lets set things back to the way they were
 		else
+		{
 			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+		}
 	}
 
 	/**
