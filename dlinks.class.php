@@ -35,12 +35,13 @@ class Add_Title_Link
 
 	/**
 	 * comma separated string or titles to not covert
-	 * @var string
+	 * @var array
 	 */
 	protected $_links_title_generic_names;
 
 	/**
-	 * comma seperated string of links to skip
+	 * comma separated string of links to skip
+	 * @var array
 	 */
 	protected $_skip_video_links;
 
@@ -106,11 +107,11 @@ class Add_Title_Link
 		global $modSettings, $boardurl, $scripturl;
 
 		// Get the generic names that we will never allow a link to convert to
-		$this->_links_title_generic_names = !empty($modSettings['descriptivelinks_title_url_generic']) ? explode(',', $modSettings['descriptivelinks_title_url_generic']) : '';
+		$this->_links_title_generic_names = !empty($modSettings['descriptivelinks_title_url_generic']) ? explode(',', $modSettings['descriptivelinks_title_url_generic']) : array();
 		$this->_internal = !empty($modSettings['queryless_urls']) ? $boardurl : $scripturl;
 		$this->_max_conversions = $modSettings['descriptivelinks_title_url_count'];
 		$this->_max_title_length = $modSettings['descriptivelinks_title_url_length'];
-		$this->_skip_video_links = !empty($modSettings['descriptivelinks_title_url_video']) ? explode(',', $modSettings['descriptivelinks_title_url_video']) : '';
+		$this->_skip_video_links = !empty($modSettings['descriptivelinks_title_url_video']) ? explode(',', $modSettings['descriptivelinks_title_url_video']) : array();
 	}
 
 	/**
@@ -122,6 +123,7 @@ class Add_Title_Link
 	 * - If bbc urls is enable will convert them back to URL's for processing
 	 *
 	 * @param string $message
+	 * @return string
 	 */
 	public function Add_title_to_link($message = '')
 	{
@@ -236,7 +238,7 @@ class Add_Title_Link
 				// Make sure this has the DNA of an html link and not a file
 				$check = isset($urlinfo['path']) ? pathinfo($urlinfo['path']) : array();
 
-				// Looks like an extesion, 4 or less characters, then it needs to be htmlish
+				// Looks like an extension, 4 or less characters, then it needs to be htmlish
 				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array($check['extension'], array('htm', 'html', '', '//', 'php'))))
 				{
 					$this->_conversions--;
@@ -248,7 +250,7 @@ class Add_Title_Link
 			}
 
 			// Request went through and there is a page title in the result
-			if ($request !== false && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
+			if ($request !== false && !empty($request) && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
 			{
 				$this->_title = $matches[1];
 				$this->sanitize_title();
@@ -278,12 +280,13 @@ class Add_Title_Link
 		// Remove crazy stuff we find in title tags, what are those web "masters" thinking?
 		$this->_title = str_replace(array('&mdash;', "\n", "\t"), array('-', ' ', ' '), $this->_title);
 		$this->_title = preg_replace('~\s{2,30}~', ' ', $this->_title);
+		$this->_title = trim($this->_title);
 
 		// Some titles are just tooooooooo long
 		$this->_title = Util::shorten_text($this->_title, $this->_max_title_length, true);
 
 		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
-		if (!empty($this->_title) && is_array($this->_links_title_generic_names) && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
+		if (!empty($this->_title) && Util::strlen($this->_title) > 2 && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
 		{
 			// Protect special characters and our database
 			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
@@ -303,6 +306,7 @@ class Add_Title_Link
 	 * - Returns the board name if its a board link
 	 *
 	 * @param string $url
+	 * @return string
 	 */
 	private function load_topic_subject($url)
 	{
