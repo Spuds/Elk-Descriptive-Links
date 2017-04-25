@@ -8,12 +8,14 @@
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/1.1/.
  *
- * @version 1.0
+ * @version 1.0.1
  *
  */
 
 if (!defined('ELK'))
+{
 	die('No access...');
+}
 
 /**
  * integrate_preparse_code, called from Post.subs
@@ -32,7 +34,9 @@ function ipc_dlinks(&$part, $i, $previewing)
 
 	// We are only interested with what's outside of code tags
 	if ($i % 4 !== 0 || $previewing)
+	{
 		return;
+	}
 
 	// Addon enabled and not turned off for this post?
 	if (!empty($modSettings['descriptivelinks_enabled']) && empty($_POST['disable_title_convert_url']) && empty($_REQUEST['nt']))
@@ -59,7 +63,9 @@ function iaa_dlinks(&$admin_areas)
 
 	// Should be but op cache causes a delay
 	if (!isset($txt['mods_cat_modifications_dlinks']))
+	{
 		$txt['mods_cat_modifications_dlinks'] = 'DLinks';
+	}
 
 	$admin_areas['config']['areas']['addonsettings']['subsections']['dlinks'] = array($txt['mods_cat_modifications_dlinks']);
 }
@@ -74,12 +80,16 @@ function iaa_dlinks(&$admin_areas)
  */
 function imm_dlinks(&$sub_actions)
 {
+	global $context, $txt;
+
 	$sub_actions['dlinks'] = array(
 		'dir' => SOURCEDIR,
 		'file' => 'dlinks.integration.php',
 		'function' => 'ModifydlinksSettings',
 		'permission' => 'admin_forum',
 	);
+
+	$context[$context['admin_menu_name']]['tab_data']['tabs']['dlinks']['description'] = $txt['descriptivelinks_desc'];
 }
 
 /**
@@ -106,8 +116,6 @@ function ModifydlinksSettings()
 {
 	global $txt, $scripturl, $context;
 
-	$context[$context['admin_menu_name']]['tab_data']['tabs']['dlinks']['description'] = $txt['descriptivelinks_desc'];
-
 	// Lets build a settings form
 	require_once(SUBSDIR . '/SettingsForm.class.php');
 
@@ -121,8 +129,8 @@ function ModifydlinksSettings()
 		array('check', 'descriptivelinks_title_bbcurl'),
 		array('int', 'descriptivelinks_title_url_count', 'subtext' => $txt['descriptivelinks_title_url_count_sub'], 'postinput' => $txt['descriptivelinks_title_url_count_urls']),
 		array('int', 'descriptivelinks_title_url_length'),
-		array('text','descriptivelinks_title_url_generic', 60, 'subtext' => $txt['descriptivelinks_title_url_generic_sub']),
-		array('text','descriptivelinks_title_url_video', 60, 'subtext' => $txt['descriptivelinks_title_url_video_sub']),
+		array('text', 'descriptivelinks_title_url_generic', 60, 'subtext' => $txt['descriptivelinks_title_url_generic_sub']),
+		array('text', 'descriptivelinks_title_url_video', 60, 'subtext' => $txt['descriptivelinks_title_url_video_sub']),
 	);
 
 	// Load the settings to the form class
