@@ -12,18 +12,15 @@
  *
  */
 
-if (!defined('ELK'))
-	die('No access...');
-
 /**
- * Searches a post for all links and trys to replace them with the destinations
+ * Searches a post for all links and attempts to replace them with the destinations
  * page title
  *
  * - Uses database querys for internal links and web request for external links
  * - Will not change links if they resolve to names in the admin disabled list
- * - truncates long titles per admin panel settings
- * - updates the link in the link in the message body itself
- * - user permission to allow disabling of this option for a given message.
+ * - Truncates long titles per admin panel settings
+ * - Updates the link in the link in the message body itself
+ * - User permission to allow disabling of this option for a given message.
  */
 class Add_Title_Link
 {
@@ -119,7 +116,7 @@ class Add_Title_Link
 	 *
 	 * - Does NOT check if the link is inside tags (e.g. code) that should not be converted
 	 * here that is taken care of by ipc_dlinks
-	 * - it must be supplied strings in which you want the tags converted
+	 * - It must be supplied strings in which you want the tags converted
 	 * - If bbc urls is enable will convert them back to URL's for processing
 	 *
 	 * @param string $message
@@ -130,7 +127,7 @@ class Add_Title_Link
 		global $modSettings;
 
 		// Init
-		require_once (SUBSDIR . '/Package.subs.php');
+		require_once(SUBSDIR . '/Package.subs.php');
 		$this->_message = $message;
 
 		// If convert URLS (bbc url) [url]$1[/url] & [url=http://$1]$1[/url] is enabled
@@ -153,7 +150,9 @@ class Add_Title_Link
 			// Maybe it just like [url]bbb.bbb.bbb[/url]
 			preg_match_all("~\[url\](http(?:s)?:\/\/(.+?))\[/url\]~si", $this->_message, $pre_urls, PREG_SET_ORDER);
 			foreach ($pre_urls as $url_check)
+			{
 				$this->_message = str_replace($url_check[0], $url_check[1], $this->_message);
+			}
 		}
 
 		// Wrap all (non bbc) links in this message in a custom bbc tag ([%url]$0[/url%.
@@ -220,7 +219,9 @@ class Add_Title_Link
 			// Make sure there is a trailing '/' *when needed* so fetch_web_data does not blow a cogswell cog
 			$urlinfo = parse_url($url_modified);
 			if (!isset($urlinfo['path']))
+			{
 				$url_modified .= '/';
+			}
 
 			// Get the title from the web or if an internal link from the database
 			$request = false;
@@ -246,7 +247,9 @@ class Add_Title_Link
 				}
 				// External links are good too, but protect against double encoded pasted links
 				else
+				{
 					$request = fetch_web_data(un_htmlspecialchars(un_htmlspecialchars($url_modified)));
+				}
 			}
 
 			// Request went through and there is a page title in the result
@@ -257,7 +260,9 @@ class Add_Title_Link
 			}
 			// No title or an error, back to the original we go...
 			else
+			{
 				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+			}
 
 			// Pop the connection to keep it alive
 			//$db->db_server_info();
@@ -339,17 +344,27 @@ class Add_Title_Link
 		{
 			// Found the topic number .... lets get the subject
 			if (isset($match[2]))
+			{
 				$match[2] = str_replace('.msg', '', $match[2]);
+			}
 			else
+			{
 				$match[2] = '';
+			}
 
 			// Set the message part of the query
 			if (isset($match[3]) && !empty($match[2]))
+			{
 				$query = 'm.id_msg >= {int:message_id}';
+			}
 			elseif (!empty($match[2]))
+			{
 				$query = '(m.id_msg = {int:message_id} OR m.id_msg = t.id_first_msg)';
+			}
 			else
+			{
 				$query = 'm.id_msg = t.id_first_msg';
+			}
 
 			// Off to the database we go, convert this link to the message title,
 			// check for any hackyness as well, such as
@@ -367,18 +382,20 @@ class Add_Title_Link
 					AND m.approved = {int:is_approved}
 					AND ' . $query . '
 				LIMIT 1',
-					array(
-						'topic_id' => $match[1],
-						'message_id' => $match[2],
-						'recycle_board' => $modSettings['recycle_board'],
-						'is_approved' => 1,
-						'query' => $query,
-					)
+				array(
+					'topic_id' => $match[1],
+					'message_id' => $match[2],
+					'recycle_board' => $modSettings['recycle_board'],
+					'is_approved' => 1,
+					'query' => $query,
+				)
 			);
 
 			// Hummm bad info in the link
 			if ($db->num_rows($request) == 0)
+			{
 				return false;
+			}
 
 			// Found the topic data, load the subject er I mean title !
 			list($title) = $db->fetch_row($request);
@@ -402,7 +419,9 @@ class Add_Title_Link
 
 			// Nothing found, nothing gained
 			if ($db->num_rows($request) == 0)
+			{
 				return false;
+			}
 
 			// Found the board name, load the name for the title
 			list($title) = $db->fetch_row($request);
@@ -422,7 +441,9 @@ class Add_Title_Link
 	public static function dlinks()
 	{
 		if (self::$_dlinks === null)
+		{
 			self::$_dlinks = new Add_Title_Link();
+		}
 
 		return self::$_dlinks;
 	}
