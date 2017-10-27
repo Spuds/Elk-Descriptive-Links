@@ -1,4 +1,4 @@
-[size=16pt][b]Descriptive Links v1.0.1[/b][/size]
+[size=16pt][b]Descriptive Links[/b][/size]
 [hr]
 
 [color=blue][b][size=12pt][u]License[/u][/size][/b][/color]

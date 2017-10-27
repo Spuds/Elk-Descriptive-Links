@@ -1,9 +1,10 @@
-##Descriptive Links v1.0.1
+## Descriptive Links
 
-###License
+### License
 This Addons Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at [http://mozilla.org/MPL/1.1/](http://mozilla.org/MPL/1.1.)
 
-###Introduction
+### Introduction
+
  - Adds capability to automatically update links in posts to display the links page title instead of the default url.
  - Optional length and generic name protection to avoid changing links to things like Login, welcome, etc
  - Optionally convert links contained inside of BBC URL codes

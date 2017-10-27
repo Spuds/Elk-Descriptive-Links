@@ -11,17 +11,23 @@
 -->
 <modification xmlns="http://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net">
 	<id>Spuds:DescriptiveLinks</id>
-	<version>1.0</version>
+	<version>1.0.2</version>
 
 	<file name="CONTROLLERDIR/Post.controller.php">
-		<operation>
+		<operation error="ignore">
 			<search position="before"><![CDATA[$context['locked'] = !empty($locked) || !empty($_REQUEST['lock']);]]></search>
 			<add><![CDATA[
 
 		// Can this person turn of link titles?
 		$context['can_disable_title_convert_url'] = allowedTo('disable_title_convert_url');]]></add>
 		</operation>
+		<operation error="ignore">
+			<search position="before"><![CDATA[$context['locked'] = !empty($this->_topic_attributes['locked']) || !empty($_REQUEST['lock']);]]></search>
+			<add><![CDATA[
 
+		// Can this person turn of link titles?
+		$context['can_disable_title_convert_url'] = allowedTo('disable_title_convert_url');]]></add>
+		</operation>
 	</file>
 
 	<file name="THEMEDIR/Post.template.php">

@@ -3,7 +3,7 @@
 <package-info xmlns="http://www.elkarte.net/site/package-info" xmlns:elk="http://www.elkarte.net/">
 	<id>Spuds:DescriptiveLinks</id>
 	<name>Descriptive Links</name>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<type>modification</type>
 	<license><![CDATA[
 /**
@@ -12,10 +12,10 @@
  * @author spuds
  * @license MPL 1.1 http://mozilla.org/MPL/1.1/
  *
- * @version 1.0.1
+ * @version 1.0.2
  */
 ]]></license>
-	<install for="1.0 - 1.0.99">
+	<install for="1.0 - 1.1.99">
 		<database>add_settings.php</database>
 		<readme type="file" parsebbc="true">readme.txt</readme>
 		<modification type="file">install.xml</modification>
@@ -29,7 +29,7 @@
 		<redirect url="?action=admin;area=addonsettings;sa=dlinks" timeout="5000">redirect.txt</redirect>
 	</install>
 
-	<uninstall for="1.0 - 1.0.99">
+	<uninstall for="1.0 - 1.1.99">
 		<readme type="file" parsebbc="true">readme-uninstall.txt</readme>
 		<hook reverse="true" hook="integrate_sa_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
 		<hook reverse="true" hook="integrate_admin_areas" file="SOURCEDIR/dlinks.integration.php" function="iaa_dlinks" />

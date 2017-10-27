@@ -8,7 +8,7 @@
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/1.1/.
  *
- * @version 1.0
+ * @version 1.0.2
  *
  */
 
@@ -263,9 +263,6 @@ class Add_Title_Link
 			{
 				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
 			}
-
-			// Pop the connection to keep it alive
-			//$db->db_server_info();
 		}
 	}
 
