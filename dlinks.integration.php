@@ -12,11 +12,6 @@
  *
  */
 
-if (!defined('ELK'))
-{
-	die('No access...');
-}
-
 /**
  * integrate_preparse_code, called from Post.subs
  *
