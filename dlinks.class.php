@@ -136,7 +136,7 @@ class Add_Title_Link
 		{
 			// Maybe its [url=http://bbb.bbb.bbb]bbb.bbb.bbb[/url]
 			$pre_urls = array();
-			preg_match_all("~\[url=(http(?:s)?:\/\/(.+?))\](?:http(?:s)?:\/\/)?(.+?)\[/url\]~siu", $this->_message, $pre_urls, PREG_SET_ORDER);
+			preg_match_all("~\[url=(http(?:s)?://.+?))]?:http(?:s)?://?(.+?)\[/url]~siu", $this->_message, $pre_urls, PREG_SET_ORDER);
 			foreach ($pre_urls as $url_check)
 			{
 				// The link IS the same as the title, so set it to be a non bbc link so we can work on it
@@ -148,19 +148,19 @@ class Add_Title_Link
 			}
 
 			// Maybe it just like [url]bbb.bbb.bbb[/url]
-			preg_match_all("~\[url\](http(?:s)?:\/\/(.+?))\[/url\]~si", $this->_message, $pre_urls, PREG_SET_ORDER);
+			preg_match_all("~\[url](http(?:s)?://(.+?))\[/url]~si", $this->_message, $pre_urls, PREG_SET_ORDER);
 			foreach ($pre_urls as $url_check)
 			{
 				$this->_message = str_replace($url_check[0], $url_check[1], $this->_message);
 			}
 		}
 
-		// Wrap all (non bbc) links in this message in a custom bbc tag ([%url]$0[/url%.
-		$this->_message = preg_replace('~((?:(?<=[\s>\.\(;\'"]|^)(https?:\/\/))|(?:(?<=[\s>\'<]|^)www\.[^ \[\]\(\)\n\r\t]+)|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})\/)([^ \[\]\(\)"\'<>\n\r\t]+)([^\. \[\]\(\),;"\'<>\n\r\t])|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})~iu', '[%url]$0[/url%]', $this->_message);
+		// Wrap all (non bbc) links in this message in a custom bbc tag ([%url]$0[/url%].
+		$this->_message = preg_replace('~((?:(?<=[\s>.(;\'"]|^)(https?://))|(?:(?<=[\s>\'<]|^)www\.[^ \[\]()\n\r\t]+)|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})/)([^ \[\]()"\'<>\n\r\t]+)([^. \[\](),;"\'<>\n\r\t])|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})~iu', '[%url]$0[/url%]', $this->_message);
 
 		// Find the special bbc tags that we just created, if any, so we can run through them and get titles
 		$this->_urls = array();
-		preg_match_all("~\[%url\](.+?)\[/url%\]~ism", $this->_message, $this->_urls);
+		preg_match_all("~\[%url](.+?)\[/url%]~ism", $this->_message, $this->_urls);
 		if (!empty($this->_urls[0]))
 		{
 			// Set a timeout on getting the url ... don't want to get stuck waiting
@@ -198,7 +198,7 @@ class Add_Title_Link
 				{
 					if (strpos($this->_url, $check) !== false)
 					{
-						$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+						$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', $this->_url, $this->_message);
 						continue;
 					}
 				}
@@ -208,7 +208,7 @@ class Add_Title_Link
 			// back to what they were and finish
 			if (!empty($this->_max_conversions) && $this->_conversions++ >= $this->_max_conversions)
 			{
-				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', $this->_url, $this->_message);
 				continue;
 			}
 
@@ -261,7 +261,7 @@ class Add_Title_Link
 			// No title or an error, back to the original we go...
 			else
 			{
-				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', $this->_url, $this->_message);
 			}
 		}
 	}
@@ -297,12 +297,12 @@ class Add_Title_Link
 			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
 
 			// Update the link with the title we found
-			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
+			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
 		}
 		// Generic title, like welcome, or home, etc ... lets set things back to the way they were
 		else
 		{
-			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', $this->_url, $this->_message);
 		}
 	}
 
