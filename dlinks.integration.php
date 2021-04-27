@@ -3,12 +3,12 @@
 /**
  * @package Descriptive Links
  * @author Spuds
- * @copyright (c) 2011-2014 Spuds
+ * @copyright (c) 2011-2021 Spuds
  * @license This Source Code is subject to the terms of the Mozilla Public License
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/1.1/.
  *
- * @version 1.0.2
+ * @version 1.0.3
  *
  */
 
@@ -50,7 +50,7 @@ function ipc_dlinks(&$part, $i, $previewing)
  * - Admin Hook, integrate_admin_areas, called from Admin.php
  * - used to add/modify admin menu areas
  *
- * @param mixed[] $admin_areas
+ * @param array $admin_areas
  */
 function iaa_dlinks(&$admin_areas)
 {
@@ -71,7 +71,7 @@ function iaa_dlinks(&$admin_areas)
  * - Admin Hook, integrate_modify_modifications, called from AddonSettings.controller.php
  * - used to add subactions to the addon area
  *
- * @param mixed[] $sub_actions
+ * @param array $sub_actions
  */
 function imm_dlinks(&$sub_actions)
 {
@@ -93,11 +93,11 @@ function imm_dlinks(&$sub_actions)
  * - Permissions hook, integrate_load_permissions, called from ManagePermissions.php
  * - used to add new permissions
  *
- * @param mixed[] $permissionGroups
- * @param mixed[] $permissionList
- * @param mixed[] $leftPermissionGroups
- * @param mixed[] $hiddenPermissions
- * @param mixed[] $relabelPermissions
+ * @param array $permissionGroups
+ * @param array $permissionList
+ * @param array $leftPermissionGroups
+ * @param array $hiddenPermissions
+ * @param array $relabelPermissions
  */
 function ilp_dlinks(&$permissionGroups, &$permissionList, &$leftPermissionGroups, &$hiddenPermissions, &$relabelPermissions)
 {

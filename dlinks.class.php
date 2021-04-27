@@ -3,12 +3,12 @@
 /**
  * @package Descriptive Links
  * @author Spuds
- * @copyright (c) 2011-2014 Spuds
+ * @copyright (c) 2011-2021 Spuds
  * @license This Source Code is subject to the terms of the Mozilla Public License
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/1.1/.
  *
- * @version 1.0.2
+ * @version 1.0.3
  *
  */
 
@@ -68,7 +68,7 @@ class Add_Title_Link
 
 	/**
 	 * urls found in the message to inspect for conversion
-	 * @var string[]
+	 * @var array
 	 */
 	protected $_urls = array();
 
@@ -199,7 +199,6 @@ class Add_Title_Link
 					if (strpos($this->_url, $check) !== false)
 					{
 						$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url) . '\[/url%]`', $this->_url, $this->_message);
-						continue;
 					}
 				}
 			}
@@ -313,7 +312,7 @@ class Add_Title_Link
 	 * - Returns the board name if its a board link
 	 *
 	 * @param string $url
-	 * @return string
+	 * @return string|false
 	 */
 	private function load_topic_subject($url)
 	{
@@ -427,9 +426,7 @@ class Add_Title_Link
 
 		// Make it look good
 		$title = trim(str_replace($txt['response_prefix'], '', $title));
-		$title = '<title>' . $title . '</title>';
-
-		return $title;
+		return '<title>' . $title . '</title>';
 	}
 
 	/**

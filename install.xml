@@ -11,7 +11,7 @@
 -->
 <modification xmlns="http://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net">
 	<id>Spuds:DescriptiveLinks</id>
-	<version>1.0.2</version>
+	<version>1.0.3</version>
 
 	<file name="CONTROLLERDIR/Post.controller.php">
 		<operation error="ignore">
