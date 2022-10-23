@@ -3,17 +3,17 @@
 /**
  * @package Descriptive Links
  * @author Spuds
- * @copyright (c) 2011-2021 Spuds
+ * @copyright (c) 2011-2022 Spuds
  * @license This Source Code is subject to the terms of the Mozilla Public License
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * http://mozilla.org/MPL/1.1/.
  *
- * @version 1.0.3
+ * @version 1.0.4
  *
  */
 
 /**
- * Searches a post for all links and attempts to replace them with the destinations
+ * Searches a post for all links and attempts to replace them with the destination
  * page title
  *
  * - Uses database querys for internal links and web request for external links
@@ -28,7 +28,7 @@ class Add_Title_Link
 	 * Holds current instance of the class
 	 * @var Add_Title_Link
 	 */
-	private static $_dlinks = null;
+	private static $_dlinks;
 
 	/**
 	 * comma separated string or titles to not covert
@@ -117,7 +117,7 @@ class Add_Title_Link
 	 * - Does NOT check if the link is inside tags (e.g. code) that should not be converted
 	 * here that is taken care of by ipc_dlinks
 	 * - It must be supplied strings in which you want the tags converted
-	 * - If bbc urls is enable will convert them back to URL's for processing
+	 * - If bbc urls are enabled will convert them back to URL's for processing
 	 *
 	 * @param string $message
 	 * @return string
@@ -136,31 +136,31 @@ class Add_Title_Link
 		{
 			// Maybe its [url=http://bbb.bbb.bbb]bbb.bbb.bbb[/url]
 			$pre_urls = array();
-			preg_match_all("~\[url=(http(?:s)?:\/\/(.+?))\](?:http(?:s)?:\/\/)?(.+?)\[/url\]~siu", $this->_message, $pre_urls, PREG_SET_ORDER);
+			preg_match_all("~\[url=(https?://(.+?))](?:https?://)?(.+?)\[/url]~siu", $this->_message, $pre_urls, PREG_SET_ORDER);
 			foreach ($pre_urls as $url_check)
 			{
 				// The link IS the same as the title, so set it to be a non bbc link so we can work on it
-				if (isset($url_check[2]) && isset($url_check[3]) && ($url_check[2] === $url_check[3]))
+				if (isset($url_check[2], $url_check[3]) && ($url_check[2] === $url_check[3]))
 				{
-					$url_check[2] = trim((strpos($url_check[2], 'http://') === false && strpos($url_check[2], 'https://') === false) ? 'http://' . $url_check[2] : $url_check[2]);
+					$url_check[2] = trim((strpos($url_check[2], 'http://') === false && strpos($url_check[2], 'https://') === false) ? 'https://' . $url_check[2] : $url_check[2]);
 					$this->_message = str_replace($url_check[0], $url_check[2], $this->_message);
 				}
 			}
 
 			// Maybe it just like [url]bbb.bbb.bbb[/url]
-			preg_match_all("~\[url\](http(?:s)?:\/\/(.+?))\[/url\]~si", $this->_message, $pre_urls, PREG_SET_ORDER);
+			preg_match_all("~\[url]((https?://)?(.+?))\[/url]~sui", $this->_message, $pre_urls, PREG_SET_ORDER);
 			foreach ($pre_urls as $url_check)
 			{
 				$this->_message = str_replace($url_check[0], $url_check[1], $this->_message);
 			}
 		}
 
-		// Wrap all (non bbc) links in this message in a custom bbc tag ([%url]$0[/url%.
-		$this->_message = preg_replace('~((?:(?<=[\s>\.\(;\'"]|^)(https?:\/\/))|(?:(?<=[\s>\'<]|^)www\.[^ \[\]\(\)\n\r\t]+)|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})\/)([^ \[\]\(\)"\'<>\n\r\t]+)([^\. \[\]\(\),;"\'<>\n\r\t])|((?:(?<=[\s\n\r\t]|^))(?:[012]?[0-9]{1,2}\.){3}[012]?[0-9]{1,2})~iu', '[%url]$0[/url%]', $this->_message);
+		// Wrap all (non bbc) links in this message in a custom bbc tag [%url]$0[/url%].
+		$this->_message = preg_replace('~((?<=[\s>.(;\'"]|^)(https?://)|(?<=[\s>\'<]|^)www\.[^ [\]()\n\r\t]+|((?<=[\s\n\r\t]|^)(?:[012]?\d{1,2}\.){3}[012]?\d{1,2})/)([^ [\]()"\'<>\n\r\t]+)([^. [\](),;"\'<>\n\r\t])|((?<=[\s\n\r\t]|^)(?:[012]?\d{1,2}\.){3}[012]?\d{1,2})~iu', '[%url]$0[/url%]', $this->_message);
 
 		// Find the special bbc tags that we just created, if any, so we can run through them and get titles
 		$this->_urls = array();
-		preg_match_all("~\[%url\](.+?)\[/url%\]~ism", $this->_message, $this->_urls);
+		preg_match_all("~\[%url](.+?)\[/url%]~isum", $this->_message, $this->_urls);
 		if (!empty($this->_urls[0]))
 		{
 			// Set a timeout on getting the url ... don't want to get stuck waiting
@@ -170,7 +170,7 @@ class Add_Title_Link
 			// Process all these links !
 			$this->process_links();
 
-			// Put the server socket timeout back to what is was originally
+			// Put the server socket timeout back
 			@ini_set('default_socket_timeout', $timeout);
 		}
 
@@ -198,7 +198,7 @@ class Add_Title_Link
 				{
 					if (strpos($this->_url, $check) !== false)
 					{
-						$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+						$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
 					}
 				}
 			}
@@ -207,7 +207,7 @@ class Add_Title_Link
 			// back to what they were and finish
 			if (!empty($this->_max_conversions) && $this->_conversions++ >= $this->_max_conversions)
 			{
-				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
 				continue;
 			}
 
@@ -226,7 +226,7 @@ class Add_Title_Link
 			$request = false;
 			if (stripos($url_modified, $this->_internal) !== false)
 			{
-				// Internal link it is, give the counter back, its a freebie
+				// Internal link it is, give the counter back, it's a freebie
 				if (!empty($modSettings['descriptivelinks_title_internal']))
 				{
 					$request = $this->load_topic_subject($url_modified);
@@ -235,11 +235,11 @@ class Add_Title_Link
 			}
 			else
 			{
-				// Make sure this has the DNA of an html link and not a file
+				// Make sure this has html link DNA, and not a file
 				$check = isset($urlinfo['path']) ? pathinfo($urlinfo['path']) : array();
 
 				// Looks like an extension, 4 or less characters, then it needs to be htmlish
-				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array($check['extension'], array('htm', 'html', '', '//', 'php'))))
+				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array($check['extension'], array('htm', 'html', '', '//', 'php'), true)))
 				{
 					$this->_conversions--;
 					$request = false;
@@ -252,7 +252,7 @@ class Add_Title_Link
 			}
 
 			// Request went through and there is a page title in the result
-			if ($request !== false && !empty($request) && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
+			if (!empty($request) && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
 			{
 				$this->_title = $matches[1];
 				$this->sanitize_title();
@@ -260,7 +260,7 @@ class Add_Title_Link
 			// No title or an error, back to the original we go...
 			else
 			{
-				$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
 			}
 		}
 	}
@@ -290,18 +290,20 @@ class Add_Title_Link
 		}
 
 		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
-		if (!empty($this->_title) && Util::strlen($this->_title) > 2 && array_search(strtolower($this->_title), $this->_links_title_generic_names) === false)
+		if (!empty($this->_title)
+			&& Util::strlen($this->_title) > 2
+			&& !in_array(strtolower($this->_title), $this->_links_title_generic_names, true))
 		{
 			// Protect special characters and our database
 			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
 
 			// Update the link with the title we found
-			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
+			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
 		}
 		// Generic title, like welcome, or home, etc ... lets set things back to the way they were
 		else
 		{
-			$this->_message = preg_replace('`\[%url\]' . preg_quote($this->_url) . '\[/url%\]`', $this->_url, $this->_message);
+			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
 		}
 	}
 
@@ -322,16 +324,16 @@ class Add_Title_Link
 
 		// lets pull out the topic number and possibly a message number for this link
 		//
-		// http://xxx/index.php?topic=5.0
-		// http://xxx/index.php/topic,5.msg9.html#msg9
+		// https://xxx/index.php?topic=5.0
+		// https://xxx/index.php/topic,5.msg9.html#msg9
 		// -or-
-		// http://xxx/index.php/topic,5.0.html
-		// http://xxx/index.php?topic=5.msg10#msg10
+		// https://xxx/index.php/topic,5.0.html
+		// https://xxx/index.php?topic=5.msg10#msg10
 		// -or-
-		// http://xxx/index.php?board=1.0
+		// https://xxx/index.php?board=1.0
 		//
-		$pattern_message = preg_quote($scripturl) . '[\/?]{1}topic[\=,]{1}(\d{1,8})(.msg\d{1,8})?(#new)?';
-		$pattern_board = preg_quote($scripturl) . '[\/?]{1}board[\=,]{1}(\d{1,8})';
+		$pattern_message = preg_quote($scripturl, '`') . '[/?]topic[=,](\d{1,8})(.msg\d{1,8})?(#new)?';
+		$pattern_board = preg_quote($scripturl, '`') . '[/?]board[=,](\d{1,8})';
 		$title = false;
 
 		// Find the topic or message number in this link
