@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<!DOCTYPE modification SYSTEM "http://www.elkarte.net/site/modification">
-<modification xmlns="http://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net/site/">
+<!DOCTYPE modification SYSTEM "https://www.elkarte.net/site/modification">
+<modification xmlns="https://www.elkarte.net/site/modification" xmlns:elk="http://www.elkarte.net/site/">
 	<file name="LANGUAGEDIR/english/Addons.english.php" error="skip">
 		<operation>
 			<search position="end" />
@@ -14,14 +14,14 @@ $txt['descriptivelinks_title_bbcurl'] = 'Convert links inside of [url] tags';
 $txt['descriptivelinks_title_url_length'] = 'Maximum allowable length for converted title';
 $txt['descriptivelinks_title_url_generic'] = 'Don\'t convert links to these generic titles (as a comma separated list)';
 $txt['descriptivelinks_title_url_generic_sub'] = 'Defaults: home,index,page&nbsp;title,default,login,logon,welcome,ebay';
-$txt['descriptivelinks_title_url_count'] = 'Maximum  number of links in a post to convert';
+$txt['descriptivelinks_title_url_count'] = 'Maximum number of links, per message, to convert';
 $txt['descriptivelinks_title_url_count_sub'] = 'Higher values will cause delays in posting as each link needs to be looked up, use 0 for no max';
 $txt['descriptivelinks_title_url_count_urls'] = 'URL\'s';
 $txt['disable_title_convert_url'] = 'Do not title links';
 $txt['permissionname_disable_title_convert_url'] = 'Allow disabling of descriptive link titles';
 $txt['permissionhelp_disable_title_convert_url'] = 'Allows the member to disable the automatic updating of links in a post to the page title.';
 $txt['descriptivelinks_title_url_video'] = 'Don\'t convert links with these names in the url (as a comma separated list)';
-$txt['descriptivelinks_title_url_video_sub'] = 'Use to skip over links, for example youtube,vimeo,dailymotion,youtu.be,youtube allowing them to embed intstead';
+$txt['descriptivelinks_title_url_video_sub'] = 'Use to skip over links, for example youtube,vimeo,dailymotion,youtu.be,youtube allowing them to embed instead';
 ]]></add>
 		</operation>
 	</file>
@@ -30,7 +30,7 @@ $txt['descriptivelinks_title_url_video_sub'] = 'Use to skip over links, for exam
 		<operation>
 			<search position="end" />
 			<add><![CDATA[
-$helptxt['descriptivelinks_title_url'] = 'Enable this to convert links posted in topics to show the descriptive page title. This mod will also convert internal topic, page and board links to show the topic or message subject or the board name.<br />If a user posts a link outside of a [url] [/url] tag (and optionally inside this tag), the mod will find it, look up the webpage, get its title, and replace the link with a properly structured bbc url using the found webpages title<br />http://www.mysitehere.com<br />will be transformed into<br />[url=http://www.mysitehere.com]My Website Title[/url]<br />If the page or title cannot be found, the URL in the post is not changed.<br />This edit is made when the post is created or edited, it is not done on the fly, as it could cause lags in load time.';
+$helptxt['descriptivelinks_title_url'] = 'Enable this to convert links to show the descriptive page title. This addon will also convert internal topic, page and board links to show the topic or message subject.<br />If a user posts a link outside a [url] [/url] tag (and optionally inside this tag), the addon will find it, look up the webpage, get its title, and replace the link with a properly structured bbc url using the found webpage title<br />https://www.mysitehere.com<br />will be transformed into<br />[url=http://www.mysitehere.com]My Website Title[/url]<br />If the page or title cannot be found, the URL in the post is not changed.<br />This edit is made when the post is created or edited, it is not done on the fly, as it could cause lags in load time.';
 ]]></add>
 		</operation>
 	</file>

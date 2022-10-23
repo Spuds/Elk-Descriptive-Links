@@ -1,7 +1,7 @@
 ## Descriptive Links
 
 ### License
-This Addons Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at [http://mozilla.org/MPL/1.1/](http://mozilla.org/MPL/1.1.)
+This Addons Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at [https://mozilla.org/MPL/1.1/](http://mozilla.org/MPL/1.1.)
 
 ### Introduction
 
