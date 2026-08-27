@@ -3,7 +3,7 @@
 /**
  * @package Descriptive Links
  * @author Spuds
- * @copyright (c) 2011-2025 Spuds
+ * @copyright (c) 2011-2026 Spuds
  * @license This Source Code is subject to the terms of the Mozilla Public License
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * https://mozilla.org/MPL/1.1/.
@@ -64,9 +64,8 @@ function iaa_descriptive_links($admin_areas)
 		$txt['mods_cat_modifications_descriptive_links'] = 'Descriptive Links';
 	}
 
-	$new_subsection = [$txt['mods_cat_modifications_descriptive_links']];
-
-	$admin_areas->insertSubsection('config', 'addonsettings', 'dlinks', $new_subsection);
+	/* @var \ElkArte\Menu\Menu $admin_areas */
+	$admin_areas->insertSubsection('addons', 'addonsettings', 'dlinks',  [$txt['mods_cat_modifications_descriptive_links']]);
 }
 
 /*

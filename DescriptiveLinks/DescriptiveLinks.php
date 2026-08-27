@@ -3,7 +3,7 @@
 /**
  * @package Descriptive Links
  * @author Spuds
- * @copyright (c) 2011-2025 Spuds
+ * @copyright (c) 2011-2026 Spuds
  * @license This Source Code is subject to the terms of the Mozilla Public License
  * version 1.1 (the "License"). You can obtain a copy of the License at
  * https://mozilla.org/MPL/1.1/.
@@ -19,10 +19,10 @@ use ElkArte\Helper\Util;
 /**
  * Searches a post for all links and attempts to replace them with the destination page title
  *
- * - Uses database query's for internal links and web request for external links
+ * - Uses database query for internal links and web request for external links
  * - Will not change links if they resolve to names in the admin disabled list
  * - Truncates long titles per admin panel settings
- * - Updates the link in the link in the message body itself
+ * - Updates the link in the message body itself
  * - User permission to allow disabling of this option for a given message.
  */
 class DescriptiveLinks
@@ -30,7 +30,10 @@ class DescriptiveLinks
 	/** @var DescriptiveLinks Holds the current instance of the class */
 	private static $_descriptive_links;
 
-	/** @var array Comma separated string or titles to not covert */
+	/** @var array Cache resolved internal titles to avoid duplicate DB queries */
+	protected static $_internal_cache = [];
+
+	/** @var array Comma separated string or titles to not convert */
 	protected $_links_title_generic_names;
 
 	/** @var array Comma separated string of links to skip */
@@ -42,7 +45,7 @@ class DescriptiveLinks
 	/** @var int Number of conversions done in this message */
 	protected $_conversions = 0;
 
-	/** @var string dna of internal links boardurl or scriptutl */
+	/** @var string dna of internal links boardurl or scripturl */
 	protected $_internal = '';
 
 	/** @var int maximum number of conversions allowed, more = more time */
@@ -63,6 +66,9 @@ class DescriptiveLinks
 	/** @var string Title text found in a given url */
 	protected $_title = '';
 
+	/** @var DescriptiveUrlBatchFetcher Addon fetcher service for external URLs */
+	private DescriptiveUrlBatchFetcher $_urlBatchFetcher;
+
 	/**
 	 * Loads some modSettings for this addon to the class vars
 	 */
@@ -71,11 +77,17 @@ class DescriptiveLinks
 		global $modSettings, $boardurl, $scripturl;
 
 		// Get the generic names that we will never allow a link to convert to
-		$this->_links_title_generic_names = !empty($modSettings['descriptive_links_title_url_generic']) ? explode(',', $modSettings['descriptive_links_title_url_generic']) : [];
+		$generic = !empty($modSettings['descriptive_links_title_url_generic']) ? explode(',', $modSettings['descriptive_links_title_url_generic']) : [];
+		$this->_links_title_generic_names = array_map(static fn($v) => strtolower(trim($v)), $generic);
 		$this->_internal = !empty($modSettings['queryless_urls']) ? $boardurl : $scripturl;
-		$this->_max_conversions = $modSettings['descriptive_links_title_url_count'];
-		$this->_max_title_length = $modSettings['descriptive_links_title_url_length'];
-		$this->_skip_video_links = !empty($modSettings['descriptive_links_title_url_video']) ? explode(',', $modSettings['descriptive_links_title_url_video']) : [];
+		$this->_max_conversions = (int) ($modSettings['descriptive_links_title_url_count'] ?? 0);
+		$this->_max_title_length = (int) ($modSettings['descriptive_links_title_url_length'] ?? 0);
+		$skip = !empty($modSettings['descriptive_links_title_url_video']) ? explode(',', $modSettings['descriptive_links_title_url_video']) : [];
+		$this->_skip_video_links = array_values(array_filter(array_map('trim', $skip)));
+		$this->_urlBatchFetcher = new DescriptiveUrlBatchFetcher([
+			CURLOPT_CONNECTTIMEOUT => 3,
+			CURLOPT_TIMEOUT => 5,
+		], 3);
 	}
 
 	/**
@@ -96,9 +108,10 @@ class DescriptiveLinks
 		// Init
 		require_once(SUBSDIR . '/Package.subs.php');
 		$this->_message = $message;
+		$this->_conversions = 0;
 
 		// If convert URLS (bbc url) [url]$1[/url] & [url=https://$1]$1[/url] is enabled,
-		// then we need to revert them to standard links for this addon to work and put convert as needed
+		// then we need to revert them to standard links for this addon to work and convert as needed
 		if (!empty($modSettings['descriptive_links_title_bbcurl']))
 		{
 			// Maybe its [url=http://bbb.bbb.bbb]bbb.bbb.bbb[/url]
@@ -109,7 +122,7 @@ class DescriptiveLinks
 				// The link IS the same as the title, so set it to be a non bbc link so we can work on it
 				if (isset($url_check[2], $url_check[3]) && ($url_check[2] === $url_check[3]))
 				{
-					$url_check[2] = trim((strpos($url_check[2], 'http://') === false && strpos($url_check[2], 'https://') === false) ? 'https://' . $url_check[2] : $url_check[2]);
+					$url_check[2] = trim((!str_contains($url_check[2], 'http://') && !str_contains($url_check[2], 'https://')) ? 'https://' . $url_check[2] : $url_check[2]);
 					$this->_message = str_replace($url_check[0], $url_check[2], $this->_message);
 				}
 			}
@@ -130,108 +143,178 @@ class DescriptiveLinks
 		preg_match_all("~\[%url](.+?)\[/url%]~isum", $this->_message, $this->_urls);
 		if (!empty($this->_urls[0]))
 		{
-			// Set a timeout on getting the url ... don't want to get stuck waiting
-			$timeout = ini_get('default_socket_timeout');
-			@ini_set('default_socket_timeout', 3);
-
 			// Process all these links!
 			$this->processLinks();
-
-			// Put the server socket timeout back
-			@ini_set('default_socket_timeout', $timeout);
 		}
 
 		return $this->_message;
 	}
 
 	/**
-	 * Process each link to find the page title
+	 * Process links found in the message to find page titles
 	 *
-	 * - Makes a fetch web data call to each link found
-	 * - Process the fetch results looking to page title
-	 * - Cleans any titles found and replaces the link with a titled link
+	 * - Uses addon-local URL batch fetcher (with multi-curl for concurrent external links)
+	 * - Resolves internal links via database queries with caching
+	 * - Cleans and formats titles
+	 * - Replaces links in a single pass to optimize performance
 	 */
 	private function processLinks()
 	{
-		global $modSettings;
+		global $modSettings, $boardurl, $scripturl;
 
-		// Look at all these links!
-		foreach ($this->_urls[1] as $this->_url)
+		if (empty($this->_urls[1]))
 		{
+			return;
+		}
+
+		$replacements = [];
+		$external_fetch_map = [];
+		$internal_resolve_map = [];
+
+		// Look at all found links
+		foreach ($this->_urls[1] as $url)
+		{
+			if (isset($replacements[$url]))
+			{
+				continue;
+			}
+
 			// If the url has any skip fragment, then we skip it
 			if (!empty($this->_skip_video_links))
 			{
 				foreach ($this->_skip_video_links as $check)
 				{
-					if (strpos($this->_url, $check) !== false)
+					if ($check !== '' && stripos($url, $check) !== false)
 					{
-						$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
+						$replacements[$url] = $url;
+						continue 2;
 					}
 				}
 			}
 
-			// If our counter has exceeded the allowed number of conversions, then put the remaining urls
-			// back to what they were and finish
-			if (!empty($this->_max_conversions) && $this->_conversions++ >= $this->_max_conversions)
+			// If our counter has exceeded the allowed number of conversions, skip remaining
+			if (!empty($this->_max_conversions) && $this->_conversions >= $this->_max_conversions)
 			{
-				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
+				$replacements[$url] = $url;
 				continue;
 			}
 
-			// Make sure the link
-			// - Is lower case
-			// - Leads with http://
-			// so fetch web data does not drop a spacely space sprocket
-			$url_temp = str_replace(['HTTP://', 'HTTPS://'], ['http://', 'https://'], $this->_url);
-			$this->_url_return = $url_modified = trim((strpos($url_temp, 'http://') === false && strpos($url_temp, 'https://') === false) ? 'http://' . $url_temp : $url_temp);
+			// Normalize URL
+			$url_temp = str_replace(['HTTP://', 'HTTPS://'], ['http://', 'https://'], $url);
+			$url_return = trim((!str_contains($url_temp, 'http://') && !str_contains($url_temp, 'https://')) ? 'http://' . $url_temp : $url_temp);
 
-			// Make sure there is a trailing '/' *when needed* so fetch_web_data does not blow a cogswell cog
+			$url_modified = $url_return;
 			$urlinfo = parse_url($url_modified);
 			if (!isset($urlinfo['path']))
 			{
 				$url_modified .= '/';
 			}
 
-			// Get the title from the web or if an internal link from the database
-			$request = false;
-			if (stripos($url_modified, $this->_internal) !== false)
+			// Check if internal link
+			$is_internal = (stripos($url_modified, $this->_internal) !== false)
+				|| (!empty($boardurl) && stripos($url_modified, $boardurl) !== false)
+				|| (!empty($scripturl) && stripos($url_modified, $scripturl) !== false);
+
+			if ($is_internal)
 			{
-				// Internal link it is, give the counter back, it's a freebie
 				if (!empty($modSettings['descriptive_links_title_internal']))
 				{
-					$request = $this->resolveLinkTitle($url_modified);
-					$this->_conversions--;
+					$internal_resolve_map[$url_modified][$url] = $url_return;
 				}
-			}
-			else
-			{
-				// Make sure this has html link DNA, and not a file
-				$check = isset($urlinfo['path']) ? pathinfo($urlinfo['path']) : [];
-
-				// Looks like an extension, 4 or less characters; then it needs to be htmlish
-				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array($check['extension'], ['htm', 'html', '', '//', 'php'], true)))
-				{
-					$this->_conversions--;
-				}
-				// External links are good too, but protect against double encoded pasted links
 				else
 				{
-					$request = fetch_web_data(un_htmlspecialchars(un_htmlspecialchars($url_modified)));
+					$replacements[$url] = $url;
 				}
 			}
-
-			// Request went through, and there is a page title in the result
-			if (!empty($request) && preg_match('~<title>(.+?)</title>~ism', $request, $matches))
-			{
-				$this->_title = $matches[1];
-				$this->sanitizeAndFormatTitle();
-			}
-			// No title or an error, back to the original we go...
 			else
 			{
-				$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
+				// Make sure this has html link DNA, and not a static resource/file
+				$check = isset($urlinfo['path']) ? pathinfo($urlinfo['path']) : [];
+
+				if (isset($check['extension']) && !isset($check['extension'][4]) && (!in_array(strtolower($check['extension']), ['htm', 'html', '', '//', 'php'], true)))
+				{
+					$replacements[$url] = $url;
+				}
+				else
+				{
+					$this->_conversions++;
+					$external_fetch_map[$url_modified][$url] = $url_return;
+				}
 			}
 		}
+
+		// Resolve internal links (with caching)
+		if (!empty($internal_resolve_map))
+		{
+			foreach ($internal_resolve_map as $url_modified => $raw_map)
+			{
+				$request = $this->resolveLinkTitle($url_modified);
+				if (!empty($request) && preg_match('~<title[^>]*>(.*?)</title>~ism', $request, $matches))
+				{
+					$title = $this->formatTitle($matches[1]);
+					if ($title !== false)
+					{
+						foreach ($raw_map as $raw_url => $url_ret)
+						{
+							$replacements[$raw_url] = '[url=' . $url_ret . ']' . $title . '[/url]';
+						}
+						continue;
+					}
+				}
+
+				foreach ($raw_map as $raw_url => $url_ret)
+				{
+					$replacements[$raw_url] = $raw_url;
+				}
+			}
+		}
+
+		// Resolve external links
+		if (!empty($external_fetch_map))
+		{
+			$urls_to_fetch = [];
+			$fetch_results = [];
+			foreach (array_keys($external_fetch_map) as $u)
+			{
+				$urls_to_fetch[$u] = un_htmlspecialchars(un_htmlspecialchars($u));
+			}
+
+			$fetch_results = $this->_urlBatchFetcher->fetch($urls_to_fetch);
+
+			foreach ($external_fetch_map as $url_modified => $raw_map)
+			{
+				$res = $fetch_results[$url_modified] ?? null;
+				$body = is_array($res) ? ($res['body'] ?? '') : (is_string($res) ? $res : '');
+
+				if (!empty($body) && preg_match('~<title[^>]*>(.*?)</title>~ism', $body, $matches))
+				{
+					$title = $this->formatTitle($matches[1]);
+					if ($title !== false)
+					{
+						foreach ($raw_map as $raw_url => $url_ret)
+						{
+							$replacements[$raw_url] = '[url=' . $url_ret . ']' . $title . '[/url]';
+						}
+						continue;
+					}
+				}
+
+				foreach ($raw_map as $raw_url => $url_ret)
+				{
+					$replacements[$raw_url] = $raw_url;
+				}
+			}
+		}
+
+		// Perform single-pass callback replacement for all [%url] tags in message
+		$this->_message = preg_replace_callback(
+			'~\[%url](.+?)\[/url%]~isum',
+			static function ($matches) use (&$replacements) {
+				$raw_url = $matches[1];
+				return $replacements[$raw_url] ?? $raw_url;
+			},
+			$this->_message
+		);
 	}
 
 	/**
@@ -240,58 +323,88 @@ class DescriptiveLinks
 	 * - Removes tags and entities
 	 * - Shortens length as needed
 	 * - Checks for generic naming
+	 *
+	 * @param string $title
+	 * @return string|false Formatted title or false if invalid/generic
+	 */
+	public function formatTitle($title)
+	{
+		// Decode and undo htmlspecialchars
+		$title = trim(html_entity_decode(un_htmlspecialchars($title), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+		// Remove newlines, tabs, dashes, etc.
+		$title = str_replace(['&mdash;', "\n", "\r", "\t"], ['-', ' ', ' ', ' '], $title);
+		$title = preg_replace('~\s{2,}~u', ' ', $title);
+		$title = trim($title);
+
+		// Some titles are just too long
+		if ($this->_max_title_length > 0)
+		{
+			$title = Util::shorten_text($title, $this->_max_title_length, true);
+		}
+
+		// Ensure non-empty, length > 2 and not in generic list
+		if (!empty($title)
+			&& Util::strlen($title) > 2
+			&& !in_array(strtolower($title), $this->_links_title_generic_names, true))
+		{
+			return Util::htmlspecialchars(stripslashes($title), ENT_QUOTES);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Prepares titles found from a page scrape for use in a link (legacy wrapper)
+	 *
+	 * - Removes tags and entities
+	 * - Shortens length as needed
+	 * - Checks for generic naming
 	 * - Replaces that link in the text with the cleaned link+title
 	 */
 	private function sanitizeAndFormatTitle()
 	{
-		// Decode and undo htmlspecial first so we can clean this dirty baby
-		$this->_title = trim(html_entity_decode(un_htmlspecialchars($this->_title)));
-
-		// Remove crazy stuff we find in title tags, what are those web "masters" thinking?
-		$this->_title = str_replace(['&mdash;', "\n", "\t"], ['-', ' ', ' '], $this->_title);
-		$this->_title = preg_replace('~\s{2,30}~', ' ', $this->_title);
-		$this->_title = trim($this->_title);
-
-		// Some titles are just tooooooooo long
-		if ($this->_max_title_length > 0)
+		$formatted = $this->formatTitle($this->_title);
+		if ($formatted !== false)
 		{
-			$this->_title = Util::shorten_text($this->_title, $this->_max_title_length, true);
+			$this->_title = $formatted;
+			$this->_message = preg_replace_callback(
+				'~\[%url]' . preg_quote($this->_url, '~') . '\[/url%]~isu',
+				fn() => '[url=' . $this->_url_return . ']' . $this->_title . '[/url]',
+				$this->_message
+			);
 		}
-
-		// Make sure we did not get a turd title, makes the link even worse, plus no one likes turds
-		if (!empty($this->_title)
-			&& Util::strlen($this->_title) > 2
-			&& !in_array(strtolower($this->_title), $this->_links_title_generic_names, true))
-		{
-			// Protect special characters and our database
-			$this->_title = Util::htmlspecialchars(stripslashes($this->_title), ENT_QUOTES);
-
-			// Update the link with the title we found
-			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', '[url=' . $this->_url_return . ']' . $this->_title . '[/url]', $this->_message);
-		}
-		// Generic title, like welcome, or home, etc ... lets set things back to the way they were
 		else
 		{
-			$this->_message = preg_replace('`\[%url]' . preg_quote($this->_url, '`') . '\[/url%]`', $this->_url, $this->_message);
+			$this->_message = preg_replace_callback(
+				'~\[%url]' . preg_quote($this->_url, '~') . '\[/url%]~isu',
+				fn() => $this->_url,
+				$this->_message
+			);
 		}
 	}
 
 	/**
 	 * Called by Add_title_to_link to resolve the name of internal links
 	 *
-	 * - Returns the topic or post, subject if its a iURL message link
-	 * - Returns the board name if its a board link
+	 * - Returns the topic or post, subject if it's a iURL message link
+	 * - Returns the board name `if it's a board link
 	 *
 	 * @param string $url
 	 * @return string|false
 	 */
 	private function resolveLinkTitle($url)
 	{
-		global $scripturl, $txt, $modSettings;
+		global $scripturl, $boardurl, $txt, $modSettings;
+
+		if (isset(self::$_internal_cache[$url]))
+		{
+			return self::$_internal_cache[$url];
+		}
 
 		$db = database();
 
-		// lets pull out the topic number and possibly a message number for this link
+		// let's pull out the topic number and possibly a message number for this link
 		//
 		// https://xxx/index.php?topic=5.0
 		// https://xxx/index.php/topic,5.msg9.html#msg9
@@ -301,15 +414,20 @@ class DescriptiveLinks
 		// -or-
 		// https://xxx/index.php?board=1.0
 		//
-		$pattern_message = preg_quote($scripturl, '`') . '[/?]topic[=,](\d{1,8})(.msg\d{1,8})?(#new)?';
-		$pattern_board = preg_quote($scripturl, '`') . '[/?]board[=,](\d{1,8})';
+		$internal_bases = array_unique(array_filter([$this->_internal, $scripturl ?? '', $boardurl ?? '']));
+		$patterns_base = !empty($internal_bases)
+			? '(?:' . implode('|', array_map(static fn($u) => preg_quote($u, '`'), $internal_bases)) . ')'
+			: preg_quote($scripturl, '`');
+
+		$pattern_message = $patterns_base . '[/?]topic[=,](\d{1,8})(.msg\d{1,8})?(#new)?';
+		$pattern_board = $patterns_base . '[/?]board[=,](\d{1,8})';
 		$title = false;
 
 		// Find the topic or message number in this link
 		$match = [];
 		if (preg_match('`' . $pattern_message . '`iu', $url, $match))
 		{
-			// Found the topic number .... lets get the subject
+			// Found the topic number ... let's get the subject
 			if (isset($match[2]))
 			{
 				$match[2] = str_replace('.msg', '', $match[2]);
@@ -341,52 +459,53 @@ class DescriptiveLinks
 				SELECT
 					m.subject
 				FROM {db_prefix}topics AS t
-					INNER JOIN {db_prefix}messages AS m ON m.id_topic = {int:topic_id}
+					INNER JOIN {db_prefix}messages AS m ON (m.id_topic = t.id_topic)
 					LEFT JOIN {db_prefix}boards AS b ON (t.id_board = b.id_board)
 				WHERE t.id_topic = {int:topic_id} 
-					AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
+					AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && !empty($modSettings['recycle_board']) && $modSettings['recycle_board'] > 0 ? '
 					AND b.id_board != {int:recycle_board}' : '') . '
 					AND m.approved = {int:is_approved}
 					AND ' . $query . '
 				LIMIT 1',
 				[
 					'topic_id' => $match[1],
-					'message_id' => $match[2],
-					'recycle_board' => $modSettings['recycle_board'],
+					'message_id' => !empty($match[2]) ? (int) $match[2] : 0,
+					'recycle_board' => $modSettings['recycle_board'] ?? 0,
 					'is_approved' => 1,
-					'query' => $query,
 				]
 			);
 
 			// Hummm bad info in the link
 			if ($request->num_rows() === 0)
 			{
+				self::$_internal_cache[$url] = false;
 				return false;
 			}
 
-			// Found the topic data, load the subject er I mean title !
+			// Found the topic data, load the subject er I mean title!
 			list($title) = $request->fetch_row();
 			$request->free_result();
 		}
 		elseif (preg_match('`' . $pattern_board . '`iu', $url, $match))
 		{
-			// Found a board number .... lets get the board name
+			// Found a board number ... let's get the board name
 			$request = $db->query('', '
 			SELECT
 				b.name
 			FROM {db_prefix}boards as b
-			WHERE b.id_board = {int:board_id} AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && $modSettings['recycle_board'] > 0 ? '
+			WHERE b.id_board = {int:board_id} AND {query_wanna_see_board}' . (!empty($modSettings['recycle_enable']) && !empty($modSettings['recycle_board']) && $modSettings['recycle_board'] > 0 ? '
 				AND b.id_board != {int:recycle_board}' : '') . '
 			LIMIT 1',
 				[
 					'board_id' => $match[1],
-					'recycle_board' => $modSettings['recycle_board'],
+					'recycle_board' => $modSettings['recycle_board'] ?? 0,
 				]
 			);
 
 			// Nothing found, nothing gained
 			if ($request->num_rows() === 0)
 			{
+				self::$_internal_cache[$url] = false;
 				return false;
 			}
 
@@ -395,9 +514,19 @@ class DescriptiveLinks
 			$request->free_result();
 		}
 
+		if ($title === false)
+		{
+			self::$_internal_cache[$url] = false;
+			return false;
+		}
+
 		// Make it look good
-		$title = trim(str_replace($txt['response_prefix'], '', $title));
-		return '<title>' . $title . '</title>';
+		$response_prefix = $txt['response_prefix'] ?? 'Re: ';
+		$title = trim(str_replace($response_prefix, '', $title));
+		$result = '<title>' . $title . '</title>';
+		self::$_internal_cache[$url] = $result;
+
+		return $result;
 	}
 
 	/**
