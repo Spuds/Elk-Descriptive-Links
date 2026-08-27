@@ -4,18 +4,22 @@
  * This file is a simplified database uninstaller. It does what it is supposed to.
  */
 
-// If we have found SSI.php and we are outside of ElkArte, then we are running standalone.
-if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('ELK'))
-	require_once(dirname(__FILE__) . '/SSI.php');
+// If we have found SSI.php and we are outside ElkArte, then we are running standalone.
+if (file_exists(__DIR__ . '/SSI.php') && !defined('ELK'))
+{
+	require_once(__DIR__ . '/SSI.php');
+}
 elseif (!defined('ELK'))
+{
 	die('<b>Error:</b> Cannot install - please verify you put this file in the same place as ElkArte\'s SSI.php.');
+}
 
 global $modSettings;
 
 $db = database();
 
 // List the addon variables to remove array('one',two',three')
-$remove_settings = array(
+$remove_settings = [
 	'descriptivelinks_enabled',
 	'descriptivelinks_title_url',
 	'descriptivelinks_title_internal',
@@ -24,16 +28,18 @@ $remove_settings = array(
 	'descriptivelinks_title_url_length',
 	'descriptivelinks_title_bbcurl',
 	'descriptivelinks_title_url_video',
-);
+];
 
 // Remove settings if applicable
 if (count($remove_settings) > 0)
 {
-	// First remove them from memory
+	// First, remove them from memory
 	foreach ($remove_settings as $setting)
 	{
 		if (isset($modSettings[$setting]))
+		{
 			unset($modSettings[$setting]);
+		}
 	}
 
 	// And now from sight
@@ -49,5 +55,7 @@ if (count($remove_settings) > 0)
 	updateSettings(array('settings_updated' => time()));
 }
 
-if (ELK == 'SSI')
-   echo 'Congratulations! You have successfully removed this addon!';
+if (ELK === 'SSI')
+{
+	echo 'Congratulations! You have successfully removed this addon!';
+}

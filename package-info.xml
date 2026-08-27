@@ -1,44 +1,38 @@
 <?xml version="1.0"?>
-<!DOCTYPE package-info SYSTEM "http://www.elkarte.net/site/package-info">
-<package-info xmlns="http://www.elkarte.net/site/package-info" xmlns:elk="http://www.elkarte.net/">
+<!DOCTYPE package-info SYSTEM "https://www.elkarte.net/site/package-info">
+<package-info xmlns="https://www.elkarte.net/site/package-info" xmlns:elk="https://www.elkarte.net/">
 	<id>Spuds:DescriptiveLinks</id>
 	<name>Descriptive Links</name>
-	<version>1.0.4</version>
+	<version>2.0.0</version>
 	<type>modification</type>
 	<license><![CDATA[
 /**
  * Descriptive Links
  *
  * @author spuds
- * @license MPL 1.1 http://mozilla.org/MPL/1.1/
+ * @license MPL 1.1 https://mozilla.org/MPL/1.1/
  *
- * @version 1.0.4
+ * @version 2.0.0
  */
 ]]></license>
-	<install for="1.0 - 1.1.99">
+	<install for="2.0.0 Beta 1 - 2.0.99">
 		<database>add_settings.php</database>
 		<readme type="file" parsebbc="true">readme.txt</readme>
-		<modification type="file">install.xml</modification>
-		<require-file name="dlinks.class.php" destination="SUBSDIR" />
-		<require-file name="dlinks.integration.php" destination="SOURCEDIR" />
-		<hook hook="integrate_sa_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
-		<hook hook="integrate_admin_areas" file="SOURCEDIR/dlinks.integration.php" function="iaa_dlinks" />
-		<hook hook="integrate_load_permissions" file="SOURCEDIR/dlinks.integration.php" function="ilp_dlinks" />
-		<hook hook="integrate_preparse_code" file="SOURCEDIR/dlinks.integration.php" function="ipc_dlinks" />
+		<require-dir name="DescriptiveLinks" destination="ADDONSDIR" />
+		<hook hook="integrate_sa_modify_modifications" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="imm_dlinks" />
+		<hook hook="integrate_admin_areas" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="iaa_dlinks" />
+		<hook hook="integrate_preparse_tokenized_code" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="ipc_dlinks" />
 		<modification>language.xml</modification>
 		<redirect url="?action=admin;area=addonsettings;sa=dlinks" timeout="5000">redirect.txt</redirect>
 	</install>
 
-	<uninstall for="1.0 - 1.1.99">
+	<uninstall for="2.0.0 Beta 1 - 2.0.99">
 		<readme type="file" parsebbc="true">readme-uninstall.txt</readme>
-		<hook reverse="true" hook="integrate_sa_modify_modifications" file="SOURCEDIR/dlinks.integration.php" function="imm_dlinks" />
-		<hook reverse="true" hook="integrate_admin_areas" file="SOURCEDIR/dlinks.integration.php" function="iaa_dlinks" />
-		<hook reverse="true" hook="integrate_load_permissions" file="SOURCEDIR/dlinks.integration.php" function="ilp_dlinks" />
-		<hook reverse="true" hook="integrate_preparse_code" file="SOURCEDIR/dlinks.integration.php" function="ipc_dlinks" />
-		<modification type="file" reverse="true">install.xml</modification>
+		<hook reverse="true" hook="integrate_sa_modify_modifications" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="imm_dlinks" />
+		<hook reverse="true" hook="integrate_admin_areas" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="iaa_dlinks" />
+		<hook reverse="true" hook="integrate_preparse_tokenized_code" file="ADDONSDIR/DescriptiveLinks/DescriptiveLinksIntegrate.php" function="ipc_dlinks" />
 		<modification type="file" reverse="true">language.xml</modification>
-		<remove-file name="SUBSDIR/dlinks.class.php" />
-		<remove-file name="SOURCEDIR/dlinks.integration.php" />
+		<remove-dir name="ADDONSDIR/DescriptiveLinks" />
 	</uninstall>
 
 </package-info>

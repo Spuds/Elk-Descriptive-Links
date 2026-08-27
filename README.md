@@ -5,9 +5,9 @@ This Addons Source Code is subject to the terms of the Mozilla Public License ve
 
 ### Introduction
 
- - Adds capability to automatically update links in posts to display the links page title instead of the default url.
+ - Adds the capability to automatically update links in posts to display the links page title instead of the default url.
  - Optional length and generic name protection to avoid changing links to things like Login, welcome, etc
- - Optionally convert links contained inside of BBC URL codes
+ - Optionally convert links contained inside BBC URL codes
  - Permissions to allow users to disable link conversion on a per post basis (under post additional options)
  - Only converts links when the post is saved or modified, ensuring no performance impact during normal message viewing.
 
