@@ -25,7 +25,7 @@ use ElkArte\SettingsForm\SettingsForm;
  * after preparse has run on that section
  *
  * @param string $part
- * @param boolean $previewing
+ * @param bool $previewing
  */
 function ipc_descriptive_links(&$part, $previewing)
 {
@@ -64,7 +64,6 @@ function iaa_descriptive_links($admin_areas)
 		$txt['mods_cat_modifications_descriptive_links'] = 'Descriptive Links';
 	}
 
-	/* @var \ElkArte\Menu\Menu $admin_areas */
 	$admin_areas->insertSubsection('addons', 'addonsettings', 'dlinks',  [$txt['mods_cat_modifications_descriptive_links']]);
 }
 
