@@ -273,7 +273,6 @@ class DescriptiveLinks
 		if (!empty($external_fetch_map))
 		{
 			$urls_to_fetch = [];
-			$fetch_results = [];
 			foreach (array_keys($external_fetch_map) as $u)
 			{
 				$urls_to_fetch[$u] = un_htmlspecialchars(un_htmlspecialchars($u));
