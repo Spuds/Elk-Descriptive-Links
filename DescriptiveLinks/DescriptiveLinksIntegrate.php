@@ -64,7 +64,7 @@ function iaa_descriptive_links($admin_areas)
 		$txt['mods_cat_modifications_descriptive_links'] = 'Descriptive Links';
 	}
 
-	$admin_areas->insertSubsection('addons', 'addonsettings', 'dlinks',  [$txt['mods_cat_modifications_descriptive_links']]);
+	$admin_areas->insertSubsection('addons', 'addonsettings', 'dlinks', [$txt['mods_cat_modifications_descriptive_links']]);
 }
 
 /*
@@ -102,10 +102,20 @@ function imm_descriptive_links(&$sub_actions)
  */
 function Modify_Descriptive_Links_Settings()
 {
-	global $txt, $scripturl, $context;
+	global $txt, $scripturl, $context, $modSettings;
 
 	$_req = HttpReq::instance();
 	Txt::load('Addons');
+
+	if (!isset($modSettings['descriptive_links_title_url']))
+	{
+		$modSettings['descriptive_links_title_url'] = 1;
+	}
+
+	if (!isset($modSettings['descriptive_links_title_url_count']))
+	{
+		$modSettings['descriptive_links_title_url_count'] = DescriptiveLinks::DEFAULT_MAX_CONVERSIONS;
+	}
 
 	// Instantiate and build a settings form
 	$settingsForm = new SettingsForm(SettingsForm::DB_ADAPTER);

@@ -30,6 +30,9 @@ class DescriptiveLinks
 	/** @var DescriptiveLinks Holds the current instance of the class */
 	private static $_descriptive_links;
 
+	/** @var int Default maximum number of conversions allowed, more = more time */
+	public const DEFAULT_MAX_CONVERSIONS = 25;
+
 	/** @var array Cache resolved internal titles to avoid duplicate DB queries */
 	protected static $_internal_cache = [];
 
@@ -39,7 +42,7 @@ class DescriptiveLinks
 	/** @var array Comma separated string of links to skip */
 	protected $_skip_video_links;
 
-	/** @var int maximum length of a title tag */
+	/** @var int maximum length of a title tag, 0 = no truncation */
 	protected $_max_title_length = 0;
 
 	/** @var int Number of conversions done in this message */
@@ -47,6 +50,9 @@ class DescriptiveLinks
 
 	/** @var string dna of internal links boardurl or scripturl */
 	protected $_internal = '';
+
+	/** @var bool whether external links are enabled for conversion */
+	private bool $_external_enabled = true;
 
 	/** @var int maximum number of conversions allowed, more = more time */
 	protected $_max_conversions = 0;
@@ -80,7 +86,10 @@ class DescriptiveLinks
 		$generic = !empty($modSettings['descriptive_links_title_url_generic']) ? explode(',', $modSettings['descriptive_links_title_url_generic']) : [];
 		$this->_links_title_generic_names = array_map(static fn($v) => strtolower(trim($v)), $generic);
 		$this->_internal = !empty($modSettings['queryless_urls']) ? $boardurl : $scripturl;
-		$this->_max_conversions = (int) ($modSettings['descriptive_links_title_url_count'] ?? 0);
+		$this->_external_enabled = !isset($modSettings['descriptive_links_title_url']) || !empty($modSettings['descriptive_links_title_url']);
+		$this->_max_conversions = isset($modSettings['descriptive_links_title_url_count'])
+			? (int) $modSettings['descriptive_links_title_url_count']
+			: self::DEFAULT_MAX_CONVERSIONS;
 		$this->_max_title_length = (int) ($modSettings['descriptive_links_title_url_length'] ?? 0);
 		$skip = !empty($modSettings['descriptive_links_title_url_video']) ? explode(',', $modSettings['descriptive_links_title_url_video']) : [];
 		$this->_skip_video_links = array_values(array_filter(array_map('trim', $skip)));
@@ -200,18 +209,40 @@ class DescriptiveLinks
 			}
 
 			// Normalize URL
-			$url_temp = str_replace(['HTTP://', 'HTTPS://'], ['http://', 'https://'], $url);
-			$url_return = trim((!str_contains($url_temp, 'http://') && !str_contains($url_temp, 'https://')) ? 'http://' . $url_temp : $url_temp);
+			$url_temp = trim($url);
+			if (str_starts_with($url_temp, '//'))
+			{
+				$url_temp = 'http:' . $url_temp;
+			}
+			elseif (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url_temp))
+			{
+				$url_temp = 'http://' . $url_temp;
+			}
+			else
+			{
+				$url_temp = preg_replace_callback(
+					'~^[a-z][a-z0-9+.-]*~i',
+					static fn(array $matches): string => strtolower($matches[0]),
+					$url_temp
+				) ?? $url_temp;
+			}
 
+			$url_return = $url_temp;
 			$url_modified = $url_return;
 			$urlinfo = parse_url($url_modified);
-			if (!isset($urlinfo['path']))
+			if ($urlinfo === false)
+			{
+				$replacements[$url] = $url;
+				continue;
+			}
+
+			if (!isset($urlinfo['path']) && !isset($urlinfo['query']) && !isset($urlinfo['fragment']))
 			{
 				$url_modified .= '/';
 			}
 
 			// Check if internal link
-			$is_internal = (stripos($url_modified, $this->_internal) !== false)
+			$is_internal = (!empty($this->_internal) && stripos($url_modified, $this->_internal) !== false)
 				|| (!empty($boardurl) && stripos($url_modified, $boardurl) !== false)
 				|| (!empty($scripturl) && stripos($url_modified, $scripturl) !== false);
 
@@ -228,6 +259,12 @@ class DescriptiveLinks
 			}
 			else
 			{
+				if (!$this->_external_enabled)
+				{
+					$replacements[$url] = $url;
+					continue;
+				}
+
 				// Make sure this has html link DNA, and not a static resource/file
 				$check = isset($urlinfo['path']) ? pathinfo($urlinfo['path']) : [];
 
@@ -333,7 +370,7 @@ class DescriptiveLinks
 
 		// Remove newlines, tabs, dashes, etc.
 		$title = str_replace(['&mdash;', "\n", "\r", "\t"], ['-', ' ', ' ', ' '], $title);
-		$title = preg_replace('~\s{2,}~u', ' ', $title);
+		$title = preg_replace('~\s{2,}~u', ' ', $title) ?? '';
 		$title = trim($title);
 
 		// Some titles are just too long
@@ -347,7 +384,8 @@ class DescriptiveLinks
 			&& Util::strlen($title) > 2
 			&& !in_array(strtolower($title), $this->_links_title_generic_names, true))
 		{
-			return Util::htmlspecialchars(stripslashes($title), ENT_QUOTES);
+			$title = Util::htmlspecialchars(stripslashes($title), ENT_QUOTES);
+			return str_replace(['[', ']'], ['&#91;', '&#93;'], $title);
 		}
 
 		return false;
